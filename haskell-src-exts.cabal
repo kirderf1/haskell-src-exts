@@ -104,3 +104,15 @@ Test-Suite test
                        filepath,
                        directory,
                        pretty-show >= 1.6.16
+
+executable program
+  main-is:          Testparse.hs
+  Build-Tools:      happy >= 1.19
+  build-depends:    array >= 0.1, pretty >= 1.0,
+                    base >= 4.5 && < 5,
+                    haskell-src-exts
+  hs-source-dirs:   experimenting
+  Default-language: Haskell98
+  Ghc-options:      -threaded -Wall
+
+

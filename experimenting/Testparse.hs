@@ -1,12 +1,15 @@
-module Testparse where 
+module Main where 
 
 import Language.Haskell.Exts
 
-main :: FilePath -> IO ()
-main file = do
+main ::  IO ()
+main = do
+  let file = "tests/examples/AtOperator.hs"
   ast <- parseFile file
-  let ast' = transform ast
-  prettyPrinterTest ast'
+  putStrLn $ show ast
+
+  --let ast' = transform ast
+  prettyPrinterTest ast
 
 
 prettyPrinterTest :: ParseResult (Module SrcSpanInfo) -> IO () 
@@ -28,7 +31,7 @@ parsePrettyPrinterTest file = do
     result =
       case ast of
         f@ParseFailed{} -> show f
-        ParseOk ast -> prettyPrint ast
+        ParseOk ast' -> prettyPrint ast'
   putStrLn $ result 
 
 

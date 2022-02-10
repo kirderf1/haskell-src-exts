@@ -1,8 +1,12 @@
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeOperators #-}
+--{-# LANGUAGE TypeApplications #-}
+--{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ComposableTypes #-}
 
-data a :+: b = Proxy
+piece Testa a = Add a a
+-- data Test a = Add a a 
 
-foo = id @(Int :+: Int)
+--data a :+: b = Proxy
 
-_ @> m = m
+--foo = id @(Int :+: Int)
+
+--_ @> m = m

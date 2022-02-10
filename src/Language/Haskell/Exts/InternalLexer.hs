@@ -221,6 +221,9 @@ data Token
         | KW_JavaScript
         | KW_CApi
 
+-- Composable types
+        | CT_Piece
+
         | EOF
         deriving (Eq,Show)
 
@@ -307,7 +310,11 @@ reserved_ids = [
  ( "via",       (KW_Via,        Just (Any [DerivingVia]))),
 
 -- FFI
- ( "foreign",   (KW_Foreign,    Just (Any [ForeignFunctionInterface])) )
+ ( "foreign",   (KW_Foreign,    Just (Any [ForeignFunctionInterface])) ),
+
+-- Composable types
+  ( "piece",   (CT_Piece,    Just (Any [ComposableTypes])) )
+
  ]
 
 
@@ -1483,5 +1490,9 @@ showToken t = case t of
   KW_Stock      -> "stock"
   KW_Anyclass   -> "anyclass"
   KW_Via        -> "via"
+
+-- Composable data types
+ 
+  CT_Piece      -> "piece"
 
   EOF           -> "EOF"

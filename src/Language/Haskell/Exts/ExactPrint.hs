@@ -919,6 +919,13 @@ instance ExactP Decl where
              ([end], Nothing) -> printStringAt (pos end) "#-}"
              _ -> errorEP "ExactP: Decl: CompletePragma is given wrong number of srcInfoPoints"
         _ -> errorEP "ExactP: Decl: CompletePragma is given wrong number of srcInfoPoints"
+    PieceDecl l mctxt dh constrs mder -> do
+        printString "piece"
+        maybeEP exactPC mctxt
+        exactPC dh
+        -- the next line works for empty data types since the srcInfoPoints will be empty then
+        printInterleaved (zip (srcInfoPoints l) ("=": repeat "|")) constrs
+        mapM_ exactPC mder
 
 
 instance ExactP Role where

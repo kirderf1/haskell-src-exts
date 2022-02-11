@@ -1349,7 +1349,7 @@ instance Annotated Decl where
         RoleAnnotDecl    l t rs          -> RoleAnnotDecl (f l) t rs
         PatSyn           l p r d         -> PatSyn (f l) p r d
         CompletePragma   l cs ty         -> CompletePragma (f l) cs ty
-	PieceDecl   l mcx dh cds ders    -> PieceDecl (f l) mcx dh cds ders
+        PieceDecl   l mcx dh cds ders    -> PieceDecl (f l) mcx dh cds ders
 
 instance Annotated Role where
     ann r = case r of

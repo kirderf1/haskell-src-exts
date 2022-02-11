@@ -1,12 +1,8 @@
---{-# LANGUAGE TypeApplications #-}
---{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE ComposableTypes #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
 
-piece Testa a = Add a a
--- data Test a = Add a a 
+data a :+: b = Proxy
 
---data a :+: b = Proxy
+foo = id @(Int :+: Int)
 
---foo = id @(Int :+: Int)
-
---_ @> m = m
+_ @> m = m

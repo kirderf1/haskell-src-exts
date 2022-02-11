@@ -4,7 +4,7 @@ import Language.Haskell.Exts
 
 main ::  IO ()
 main = do
-  let file = "tests/examples/AtOperator.hs"
+  let file = "experimenting/tests/Example.hs"
   ast <- parseFile file
   putStrLn $ show ast
 

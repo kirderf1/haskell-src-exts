@@ -29,6 +29,7 @@ module Language.Haskell.Exts.ParseUtils (
     , checkAssertion        -- PType -> P PAsst
     , checkDataHeader       -- PType -> P (Context,Name,[TyVarBind])
     , checkClassHeader      -- PType -> P (Context,Name,[TyVarBind])
+    , checkPieceHeader      -- PType L -> P (Maybe (S.Context L), DeclHead L)
     , checkInstHeader       -- PType -> P (Context,QName,[Type])
     , checkDeriving         -- [PType] -> P [Deriving]
     , checkPattern          -- PExp -> P Pat

@@ -689,16 +689,16 @@ lexer through the 'foreign' (and 'export') keyword.
 >       | '{-# COMPLETE' con_list opt_tyconsig '#-}'
 >           { let com = maybe [] ((:[]) . fst) $3; ts = fmap snd $3 in
 > (CompletePragma ($1 <^^> $4 <** ([$1] ++ fst $2 ++ com ++ [$4])) (snd $2) ts) }
->       | decl          { $1 }
 
 Requires Composable Types extension
->       | 'piece' ctype constrs maybe_derivings
+>       | 'piece' ctype constrs0 maybe_derivings
 >              {% do { checkEnabled ComposableTypes ;
->                      (cs, dh) <- checkPieceHead $2 ;
+>                      (cs, dh) <- checkPieceHeader $2 ;
 >                      let { (qds,ss,minf) = $3;
->                            l = $1 <> $2 <+?> minf <+?> fmap ann (listToMaybe $4) <** ss};
->                            return (PieceDecl l cs dh (reverse qds) (reverse $4)) } }
+>                            l = nIS $1 <++> ann $2 <+?> minf <+?> fmap ann (listToMaybe $4) <** ss};
+>                      return (PieceDecl l cs dh (reverse qds) (reverse $4)) } }
 
+>       | decl          { $1 }
 
 > -- Family result/return kind signatures
 >

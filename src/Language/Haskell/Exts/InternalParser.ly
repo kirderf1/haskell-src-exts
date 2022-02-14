@@ -267,6 +267,7 @@ Reserved Ids
 >       'stock'         { Loc $$ KW_Stock }    -- for DerivingStrategies extension
 >       'anyclass'      { Loc $$ KW_Anyclass } -- for DerivingStrategies extension
 >       'via'           { Loc $$ KW_Via }      -- for DerivingStrategies extension
+>       'piece'         { Loc $$ KW_Piece }    -- for Composable Types
 
 Pragmas
 
@@ -689,6 +690,15 @@ lexer through the 'foreign' (and 'export') keyword.
 >           { let com = maybe [] ((:[]) . fst) $3; ts = fmap snd $3 in
 > (CompletePragma ($1 <^^> $4 <** ([$1] ++ fst $2 ++ com ++ [$4])) (snd $2) ts) }
 >       | decl          { $1 }
+
+Requires Composable Types extension
+>       | 'piece' ctype constrs maybe_derivings
+>              {% do { checkEnabled ComposableTypes ;
+>                      (cs, dh) <- checkPieceHead $2 ;
+>                      let { (qds,ss,minf) = $3;
+>                            l = $1 <> $2 <+?> minf <+?> fmap ann (listToMaybe $4) <** ss};
+>                            return (PieceDecl l cs dh (reverse qds) (reverse $4)) } }
+
 
 > -- Family result/return kind signatures
 >

@@ -222,7 +222,7 @@ data Token
         | KW_CApi
 
 -- Composable types
-        | CT_Piece
+        | KW_Piece
 
         | EOF
         deriving (Eq,Show)
@@ -313,7 +313,7 @@ reserved_ids = [
  ( "foreign",   (KW_Foreign,    Just (Any [ForeignFunctionInterface])) ),
 
 -- Composable types
-  ( "piece",   (CT_Piece,    Just (Any [ComposableTypes])) )
+  ( "piece",   (KW_Piece,    Just (Any [ComposableTypes])) )
 
  ]
 
@@ -1493,6 +1493,6 @@ showToken t = case t of
 
 -- Composable data types
  
-  CT_Piece      -> "piece"
+  KW_Piece      -> "piece"
 
   EOF           -> "EOF"

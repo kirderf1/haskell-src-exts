@@ -317,6 +317,16 @@ checkClassHeader t = do
     dh <- checkSimple "class" t
     return (Nothing,dh)
 
+-- for Composable types pieces
+checkPieceHeader :: PType L -> P (Maybe (S.Context L), DeclHead L)
+checkPieceHeader (TyForall _ Nothing cs t) = do
+    dh <- checkSimple "piece" t
+    cs' <- checkContext cs
+    return (cs',dh)
+checkPieceHeader t = do
+    dh <- checkSimple "piece" t
+    return (Nothing,dh)
+
 checkSimple :: String -> PType L -> P (DeclHead L)
 --checkSimple kw (TyApp _ l t) xs | isTyVarBind t = checkSimple kw l (toTyVarBind t : xs)
 

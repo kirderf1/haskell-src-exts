@@ -223,6 +223,7 @@ data Token
 
 -- Composable types
         | KW_Piece
+        | ExtraArrow
 
         | EOF
         deriving (Eq,Show)
@@ -242,6 +243,7 @@ reserved_ops = [
  ( "~",  (Tilde,        Nothing) ),
  ( "=>", (DoubleArrow,  Nothing) ),
  ( "*",  (Star,         Just (Any [KindSignatures])) ),
+ ( "==>",(ExtraArrow,   Just (Any [ComposableTypes])) ),
  -- Parallel arrays
  ( "[:", (ParArrayLeftSquare,   Just (Any [ParallelArrays])) ),
  ( ":]", (ParArrayRightSquare,  Just (Any [ParallelArrays])) ),
@@ -1494,5 +1496,6 @@ showToken t = case t of
 -- Composable data types
  
   KW_Piece      -> "piece"
+  ExtraArrow    -> "==>"
 
   EOF           -> "EOF"

@@ -165,6 +165,7 @@ Reserved operators
 >       '-'     { Loc $$ Minus }
 >       '!'     { Loc $$ Exclamation }  -- 50
 >       '*'     { Loc $$ Star }
+>       '==>'   { Loc $$ ExtraArrow }
 
 Arrows
 
@@ -691,12 +692,12 @@ lexer through the 'foreign' (and 'export') keyword.
 > (CompletePragma ($1 <^^> $4 <** ([$1] ++ fst $2 ++ com ++ [$4])) (snd $2) ts) }
 
 Requires Composable Types extension
->       | 'piece' ctype constrs0 maybe_derivings
->              {% do { checkEnabled ComposableTypes ;
->                      (cs, dh) <- checkPieceHeader $2 ;
->                      let { (qds,ss,minf) = $3;
->                            l = nIS $1 <++> ann $2 <+?> minf <+?> fmap ann (listToMaybe $4) <** ss};
->                      return (PieceDecl l cs dh (reverse qds) (reverse $4)) } }
+       | 'piece' ctype constrs0 maybe_derivings
+              {% do { checkEnabled ComposableTypes ;
+                      (cs, dh) <- checkPieceHeader $2 ;
+                      let { (qds,ss,minf) = $3;
+                            l = nIS $1 <++> ann $2 <+?> minf <+?> fmap ann (listToMaybe $4) <** ss};
+                      return (PieceDecl l cs dh (reverse qds) (reverse $4)) } }
 
 >       | decl          { $1 }
 

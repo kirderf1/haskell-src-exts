@@ -576,8 +576,8 @@ instance  Pretty (Decl l) where
                     ts_p  = maybe empty (\tc -> text "::" <+> pretty tc) opt_ts
                 in myFsep $ [text "{-# COMPLETE"] ++ cls_p ++ [ts_p, text "#-}"]
 
-        pretty (PieceDecl _ context dHead constrList derives) =
-                mySep ( [text "piece", maybePP pretty context, pretty dHead])
+        pretty (PieceDecl _ category dHead constrList derives) =
+                mySep ( [text "data", pretty category, text "==>", pretty dHead])
 
                   <+> (myVcat (zipWith (<+>) (equals : repeat (char '|'))
                                              (map pretty constrList))

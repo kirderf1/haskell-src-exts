@@ -341,7 +341,7 @@ data Decl l
      -- ^ A role annotation
      | CompletePragma l [Name l] (Maybe (QName l))
      -- ^ A COMPLETE pragma
-     | PieceDecl     l (Maybe (Context l)) (DeclHead l)  [QualConDecl l] [Deriving l]
+     | PieceDecl     l (Name l) (Name l) [ConDecl l] [Deriving l]
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
 data  PatternSynDirection l =
@@ -1349,7 +1349,7 @@ instance Annotated Decl where
         RoleAnnotDecl    l t rs          -> RoleAnnotDecl (f l) t rs
         PatSyn           l p r d         -> PatSyn (f l) p r d
         CompletePragma   l cs ty         -> CompletePragma (f l) cs ty
-        PieceDecl   l mcx dh cds ders    -> PieceDecl (f l) mcx dh cds ders
+        PieceDecl   l ca dh cds ders    -> PieceDecl (f l) ca dh cds ders
 
 instance Annotated Role where
     ann r = case r of

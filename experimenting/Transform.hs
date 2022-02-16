@@ -86,9 +86,10 @@ deriveFunctor nam parname aders =
             (TyVar aders parname))))]
 
 
--- TODO: Figure out how to handle names for parametrize variables
+-- | Get a name for the parametrized variable.            
+-- TODO: Figure out how to handle unique names for parametrize variables
 getParName :: l -> Name l 
-getParName = undefined
+getParName info = Ident info "a"
 
 
 -- TODO: Check what should be derived by template Haskell, and build the corresponding tree.
@@ -98,3 +99,9 @@ deriveTH = undefined
 --      make a derive statement for makeFoldable, smartConstructors etc that are always needed.
 --      perhaps look at if there is some things that should only be derived in some cases
 -- also derive liftSum for the coproduct type
+
+
+-- $(derive [makeTraversable, makeFoldable,
+--makeEqF, makeShowF, smartConstructors, smartAConstructors]
+--[''Value, ''Op])
+

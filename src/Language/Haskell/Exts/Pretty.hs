@@ -577,7 +577,7 @@ instance  Pretty (Decl l) where
                 in myFsep $ [text "{-# COMPLETE"] ++ cls_p ++ [ts_p, text "#-}"]
 
         pretty (PieceDecl _ category dHead constrList derives) =
-                mySep ( [text "data", pretty category, text "==>", pretty dHead])
+                mySep ( [text "data", text "piece", pretty category, text "==>", pretty dHead])
 
                   <+> (myVcat (zipWith (<+>) (equals : repeat (char '|'))
                                              (map pretty constrList))

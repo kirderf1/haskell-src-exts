@@ -341,7 +341,7 @@ data Decl l
      -- ^ A role annotation
      | CompletePragma l [Name l] (Maybe (QName l))
      -- ^ A COMPLETE pragma
-     | PieceDecl     l (Name l) (Name l) [ConDecl l] [Deriving l]
+     | PieceDecl     l (Name l) (Name l) [QualConDecl l] [Deriving l]
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
 data  PatternSynDirection l =

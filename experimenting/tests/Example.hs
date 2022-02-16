@@ -1,8 +1,9 @@
 
 {-# LANGUAGE ComposableTypes #-}
 
-piece Testa a = Add a a
+data piece Expr ==> Op = Add Expr Expr
+    deriving Show
 
-$(derive [makeTraversable, makeFoldable,
-          makeEqF, makeShowF, smartConstructors, smartAConstructors]
-         [''Value, ''Op])
+-- $(derive [makeTraversable, makeFoldable,
+--           makeEqF, makeShowF, smartConstructors, smartAConstructors]
+--          [''Value, ''Op])

@@ -4,12 +4,14 @@ import Language.Haskell.Exts
 
 main ::  IO ()
 main = do
-  let file = "experimenting/tests/Example.hs"
-  ast <- parseFile file
-  putStrLn $ show ast
-
+  let file = "experimenting/tests/THExample.hs"
+  res <- parseFile file
+  -- putStrLn $ show res    -- print the annotated tree
+  case res of           -- print tree without annotations
+        f@ParseFailed{} -> print f
+        ParseOk ast -> putStr $ show $ removeSrcSpanInfo ast
   --let ast' = transform ast
-  prettyPrinterTest ast
+  prettyPrinterTest res
 
 
 prettyPrinterTest :: ParseResult (Module SrcSpanInfo) -> IO () 
@@ -53,4 +55,16 @@ transform' (Module srcinfo Nothing p i c) =
           removeExt (n:".hs") = [n]
           removeExt (n:ns) = n : removeExt ns
            
+
+removeSrcSpanInfo :: Module SrcSpanInfo -> Module ()
+removeSrcSpanInfo = fmap simplify
+  where
+    simplify :: SrcSpanInfo -> ()
+    simplify _ = ()
+
+  --     data SrcSpanInfo = SrcSpanInfo
+  --     { srcInfoSpan    :: SrcSpan
+  -- --    , explLayout     :: Bool
+  --     , srcInfoPoints  :: [SrcSpan]    -- Marks the location of specific entities inside the span
+  --     }
 

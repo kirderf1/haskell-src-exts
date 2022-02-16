@@ -921,6 +921,7 @@ instance ExactP Decl where
         _ -> errorEP "ExactP: Decl: CompletePragma is given wrong number of srcInfoPoints"
     PieceDecl l ca dh constrs mder -> do
         printString "data"
+        printString "piece"
         exactPC ca
         printString "==>"
         exactPC dh

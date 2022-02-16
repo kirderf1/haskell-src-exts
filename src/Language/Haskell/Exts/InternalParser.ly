@@ -692,12 +692,11 @@ lexer through the 'foreign' (and 'export') keyword.
 > (CompletePragma ($1 <^^> $4 <** ([$1] ++ fst $2 ++ com ++ [$4])) (snd $2) ts) }
 
 Requires Composable Types extension
-       | 'piece' ctype constrs0 maybe_derivings
-              {% do { checkEnabled ComposableTypes ;
-                      (cs, dh) <- checkPieceHeader $2 ;
-                      let { (qds,ss,minf) = $3;
-                            l = nIS $1 <++> ann $2 <+?> minf <+?> fmap ann (listToMaybe $4) <** ss};
-                      return (PieceDecl l cs dh (reverse qds) (reverse $4)) } }
+>       | 'data' 'piece' con '==>' con constrs0 maybe_derivings
+>              {% do { checkEnabled ComposableTypes ;
+>                      let { (qds,ss,minf) = $6;
+>                            l = nIS $1 <++> nIS $2 <++> nIS $4 <++> $3 <> $5 <+?> minf <+?> fmap ann (listToMaybe $7) <** ss};
+>                      return (PieceDecl l $3 $5 (reverse qds) (reverse $7)) } }
 
 >       | decl          { $1 }
 

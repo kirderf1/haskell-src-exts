@@ -1128,6 +1128,11 @@ instance ExactP Type where
         printString $ "[" ++ name ++ "|"
         sequence_ (intersperse newLine $ map printString qtLines)
         printString "|]"
+    TyComp l cat pieces -> do
+        exactP cat
+        printString "==>"
+        parenList (srcInfoPoints l) pieces
+        
 
 instance ExactP MaybePromotedName where
   exactP (PromotedName l qn)  = case srcInfoPoints l of

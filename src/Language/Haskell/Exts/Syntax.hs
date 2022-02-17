@@ -1524,6 +1524,7 @@ instance Annotated Type where
       TyBang l _ _ _                  -> l
       TyWildCard l _                -> l
       TyQuasiQuote l _ _            -> l
+      TyComp l _ _                  -> l
     amap f t1 = case t1 of
       TyForall l mtvs mcx t         -> TyForall (f l) mtvs mcx t
       TyStar  l                     -> TyStar (f l)
@@ -1544,6 +1545,7 @@ instance Annotated Type where
       TyBang l b u t                  -> TyBang (f l) b u t
       TyWildCard l n                -> TyWildCard (f l) n
       TyQuasiQuote l n s            -> TyQuasiQuote (f l) n s
+      TyComp l c t                  -> TyComp (f l) c t
 
 instance Annotated MaybePromotedName where
   ann t = case t of

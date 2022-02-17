@@ -887,6 +887,9 @@ instance  Pretty (Type l) where
         prettyPrec _ (TyBang _ b u t) = pretty u <> pretty b <> prettyPrec prec_atype t
         prettyPrec _ (TyWildCard _ mn) = char '_' <> maybePP pretty mn
         prettyPrec _ (TyQuasiQuote _ n qt) = text ("[" ++ n ++ "|" ++ qt ++ "|]")
+        prettyPrec _ (TyComp _ c ps) =
+                let ds = map pretty ps
+                 in myFsep [pretty c, text "==>", parenList ds]
 
 instance Pretty (MaybePromotedName l) where
   pretty (PromotedName _ q) = char '\'' <> ppQNameInfix q

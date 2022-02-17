@@ -5,51 +5,33 @@ import Transform
 
 main ::  IO ()
 main = do
-  -- let file = "experimenting/tests/THExample.hs"
   let file = "experimenting/tests/Example.hs"
   res <- parseFile file
-  -- putStrLn $ show res    -- print the annotated tree
   case res of           -- print tree without annotations
         f@ParseFailed{} -> print f
-        ParseOk ast -> putStrLn $ show $ removeSrcSpanInfo ast
-  prettyPrinterTest res
-  let ast' = transform res
-  case ast' of           -- print tree without annotations
-    f@ParseFailed{} -> print f
-    ParseOk ast'' -> putStrLn $ show $ removeSrcSpanInfo ast''
-  -- putStrLn $ show ast'
-  prettyPrinterTest ast'
+        ParseOk ast -> runTests ast
+  where
+    runTests :: Module SrcSpanInfo -> IO ()
+    runTests ast = do
+      putStrLn "AST structure before:"
+      showModule ast
+      putStrLn "Pretty-print before:"
+      prettyPrinterTest ast
+      let res = transform ast
+      case res of           -- print tree without annotations
+            f@ParseFailed{} -> print f
+            ParseOk ast' -> do
+              putStrLn "AST structure after:"
+              showModule ast'
 
+showModule :: Module SrcSpanInfo -> IO()
+showModule = putStrLn . show . removeSrcSpanInfo
 
-
-prettyPrinterTest :: ParseResult (Module SrcSpanInfo) -> IO () 
-prettyPrinterTest ast = do
-  let result = case ast of
-        f@ParseFailed{} -> show f
-        ParseOk ast -> prettyPrint ast
-  putStrLn $ result 
-
-parsetest :: FilePath -> IO ()
-parsetest s = do
-  ast <- parseFile s
-  putStrLn $ show ast
-
-parsePrettyPrinterTest :: FilePath -> IO () 
-parsePrettyPrinterTest file = do
-  ast <- parseFile file
-  let
-    result =
-      case ast of
-        f@ParseFailed{} -> show f
-        ParseOk ast' -> prettyPrint ast'
-  putStrLn $ result 
-           
+prettyPrinterTest :: Module SrcSpanInfo -> IO () 
+prettyPrinterTest ast = putStrLn $ prettyPrint ast
 
 removeSrcSpanInfo :: Module SrcSpanInfo -> Module ()
-removeSrcSpanInfo = fmap simplify
-  where
-    simplify :: SrcSpanInfo -> ()
-    simplify _ = ()
+removeSrcSpanInfo = fmap $ const ()
 
   --     data SrcSpanInfo = SrcSpanInfo
   --     { srcInfoSpan    :: SrcSpan

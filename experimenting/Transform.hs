@@ -11,9 +11,8 @@ data Env l = Env {
 }
 
 -- | Transform tree from parse result.
-transform :: ParseResult (Module l) -> ParseResult (Module l)
-transform f@ParseFailed{} = f
-transform (ParseOk ast) = ParseOk $ transformModule ast
+transform :: Module l -> ParseResult (Module l)
+transform ast = ParseOk $ transformModule ast
 
 
 -- | Transform a module 

@@ -12,12 +12,12 @@ data Env l = Env {
 
 -- | Transform a module 
 transformModule :: Module l -> Module l
-transformModule m@(Module l mhead ps is ds) = do
+transformModule m@(Module l mhead ps is ds) =
     if pragmasContain "ComposableTypes" ps
-        then do
+        then
             let ps' = modifyPragmas l ps
-            let ds' = concatMap transformDecl ds
-            (Module l mhead ps' is ds')
+                ds' = concatMap transformDecl ds
+            in (Module l mhead ps' is ds')
         else m
 -- Module l (Maybe (ModuleHead l)) [ModulePragma l] [ImportDecl l] [Decl l]
 transformModule xml = xml 
@@ -30,7 +30,7 @@ transformDecl (PieceDecl l cat nam cs ders) =
     let parname = getParName (ann nam)
         cspar = map (parametConstructor parname cat) cs
         aders = head $ map ann ders
-        functorDerive = deriveFunctor nam parname aders
+        functorDerive = deriveFunctor aders
         in
     (DataDecl 
         l 
@@ -42,7 +42,7 @@ transformDecl (PieceDecl l cat nam cs ders) =
         )
     : [deriveTHPiece nam]
 
-transformDecl (TypeDecl l dhead (TyComp l2 nam cons)) = 
+transformDecl (TypeDecl l dhead (TyComp _l2 _nam cons)) = 
     [TypeDecl l dhead (coprod cons)]
 
 transformDecl d = [d]
@@ -72,9 +72,9 @@ parametConstructor _ _ c = c
 -- Use DerivingStrategies to allow this
 
 -- | Create a Deriving functor for a given data type
-deriveFunctor :: Name l -> Name l -> l -> Deriving l 
-deriveFunctor nam parname aders =
-  Deriving aders Nothing --(Just (DerivStock aders))
+deriveFunctor :: l -> Deriving l 
+deriveFunctor aders =
+  Deriving aders Nothing
     [IRule aders Nothing 
       Nothing
       (IHCon aders (UnQual aders (Ident aders "Functor")))]
@@ -94,7 +94,7 @@ deriveTHPiece nam = deriveTH nam ["makeTraversable", "makeFoldable", "makeEqF",
 
 -- | Template Haskell derive for a certain data type from a list of things to derive
 deriveTH :: Name l -> [String] -> Decl l 
-deriveTH nam@(Ident l _) list = SpliceDecl l 
+deriveTH nam list = SpliceDecl l 
         (SpliceExp l 
             (ParenSplice l 
                 (App l 
@@ -118,6 +118,7 @@ deriveTH nam@(Ident l _) list = SpliceDecl l
                 )
             )
         )
+    where l = ann nam
 
 
 -- | Element for a thing to derive with Template Haskell
@@ -150,10 +151,11 @@ matchPragma s (LanguagePragma _ [Ident _ nam]) = nam == s
 matchPragma _ _ = False
 
 coprod :: [Name l] -> Type l
-coprod [nam@(Ident l _)] = TyCon l (UnQual l nam)
-coprod (nam@(Ident l _):ns) = TyInfix l (TyCon l (UnQual l nam)) 
+coprod [nam] = TyCon l (UnQual l nam)
+    where l = ann nam
+coprod (nam:ns) = TyInfix l (TyCon l (UnQual l nam)) 
                                         (UnpromotedName l (UnQual l (Symbol l ":+:")))
                                         (coprod ns)
-                                          
-                                          
+    where l = ann nam
+coprod _ = undefined
 

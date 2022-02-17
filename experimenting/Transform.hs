@@ -48,6 +48,8 @@ transformDecl (PieceDecl l cat nam cs ders) =
         )
     : [deriveTHPiece nam]
 
+transformDecl (TypeDecl l dhead (TyComp l2 nam cons)) = 
+    [TypeDecl l dhead (coprod cons)]
 
 transformDecl d = [d]
 
@@ -135,10 +137,11 @@ deriveTHListElem l nam = Var l (UnQual l (Ident l nam))
 -- TODO: possibly more pragmas?
 -- | Modify a list of pragmas to remove ComposableTypes and add DeriveFunctor, TemplateHaskell
 modifyPragmas :: l -> [ModulePragma l] -> [ModulePragma l]
-modifyPragmas l ps =  addPragma l "DeriveFunctor" $ addPragma l "TemplateHaskell" $ removeCompTypes ps
+modifyPragmas l ps =  concatMap (addPragma l (removeCompTypes ps)) 
+                                ["DeriveFunctor","TemplateHaskell","TypeOperators"] 
     where  
-        addPragma :: l -> String -> [ModulePragma l] -> [ModulePragma l]
-        addPragma l1 nam prs = if pragmasContain nam prs 
+        addPragma :: l -> [ModulePragma l] -> String -> [ModulePragma l]
+        addPragma l1 prs nam = if pragmasContain nam prs 
                                  then prs
                                  else (LanguagePragma l1 [Ident l1 nam]):prs
         removeCompTypes = filter (not . matchPragma "ComposableTypes")
@@ -151,4 +154,12 @@ pragmasContain nam = any (matchPragma nam)
 matchPragma :: String -> ModulePragma l -> Bool
 matchPragma s (LanguagePragma _ [Ident _ nam]) = nam == s
 matchPragma _ _ = False
+
+coprod :: [Name l] -> Type l
+coprod [nam@(Ident l _)] = TyCon l (UnQual l nam)
+coprod (nam@(Ident l _):ns) = TyInfix l (TyCon l (UnQual l nam)) 
+                                        (UnpromotedName l (UnQual l (Symbol l ":+:")))
+                                        (coprod ns)
+                                          
+                                          
 

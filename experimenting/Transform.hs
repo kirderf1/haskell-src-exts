@@ -10,40 +10,40 @@ data Env l = Env {
     categories :: [(Name l , [Name l])] -- Map Category [Name]
 }
 
--- | Transform a module 
+-- | Transform a module to remove syntax for composable types if the pragma is present
 transformModule :: Module l -> Module l
-transformModule m@(Module l mhead ps is ds) =
-    if pragmasContain "ComposableTypes" ps
+transformModule m@(Module l mhead pragmas imports decls) =
+    if pragmasContain "ComposableTypes" pragmas
         then
-            let ps' = modifyPragmas l ps
-                ds' = concatMap transformDecl ds
-            in (Module l mhead ps' is ds')
+            let pragmas' = modifyPragmas l pragmas
+                decls' = concatMap transformDecl decls
+            in (Module l mhead pragmas' imports decls')
         else m
--- Module l (Maybe (ModuleHead l)) [ModulePragma l] [ImportDecl l] [Decl l]
 transformModule xml = xml 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
 
--- | Transform a top level declaration
+-- | Transform a top level declaration to one or more new declarations
 transformDecl :: Decl l -> [Decl l]
-transformDecl (PieceDecl l cat nam cs ders) = 
+transformDecl (PieceDecl l category headName cons derives) = 
     -- add cat to list of categories
-    let parname = getParName (ann nam)
-        cspar = map (parametConstructor parname cat) cs
-        aders = head $ map ann ders
+    let nameL = ann headName
+        parname = getParName nameL
+        cspar = map (parametConstructor parname category) cons
+        aders = head $ map ann derives
         functorDerive = deriveFunctor aders
         in
     (DataDecl 
         l 
         (DataType l)
         Nothing 
-        (DHApp (ann nam) (DHead (ann nam) nam) (UnkindedVar (ann nam) parname))
+        (DHApp nameL (DHead nameL headName) (UnkindedVar nameL parname))
         cspar
-        (functorDerive : ders)
+        (functorDerive : derives)
         )
-    : [deriveTHPiece nam]
+    : [deriveTHPiece headName]
 
-transformDecl (TypeDecl l dhead (TyComp _l2 _nam cons)) = 
-    [TypeDecl l dhead (coprod cons)]
+transformDecl (TypeDecl l dhead (TyComp _l2 _nam types)) = 
+    [TypeDecl l dhead (coprod types)]
 
 transformDecl d = [d]
 
@@ -51,12 +51,12 @@ transformDecl d = [d]
     parameter instead of the name of the category it belongs to.
 -}
 parametConstructor :: Name l -> Name l -> QualConDecl l -> QualConDecl l
-parametConstructor parname cat (QualConDecl l0 v c (ConDecl l1 cname types)) = 
+parametConstructor parname category (QualConDecl l0 v c (ConDecl l1 cname types)) = 
     QualConDecl l0 v c (ConDecl l1 cname (map (parametType parname) types))
     where 
         -- TODO: Could there be other ways to form this construct?
         parametType pname (TyCon tl (UnQual t2 recu)) = 
-            if recu `match` cat
+            if recu `match` category
                 then TyCon tl (UnQual t2 pname)
                 else TyCon tl (UnQual t2 recu)
         parametType _ t = t
@@ -73,11 +73,11 @@ parametConstructor _ _ c = c
 
 -- | Create a Deriving functor for a given data type
 deriveFunctor :: l -> Deriving l 
-deriveFunctor aders =
-  Deriving aders Nothing
-    [IRule aders Nothing 
+deriveFunctor l =
+  Deriving l Nothing
+    [IRule l Nothing 
       Nothing
-      (IHCon aders (UnQual aders (Ident aders "Functor")))]
+      (IHCon l (UnQual l (Ident l "Functor")))]
 
 
 
@@ -89,12 +89,12 @@ getParName info = Ident info "a"
 
 -- | Template Haskell derive for a piece
 deriveTHPiece :: Name l -> Decl l 
-deriveTHPiece nam = deriveTH nam ["makeTraversable", "makeFoldable", "makeEqF",
+deriveTHPiece pieceName = deriveTH pieceName ["makeTraversable", "makeFoldable", "makeEqF",
                                   "makeShowF", "smartConstructors", "smartAConstructors"]                                
 
 -- | Template Haskell derive for a certain data type from a list of things to derive
 deriveTH :: Name l -> [String] -> Decl l 
-deriveTH nam list = SpliceDecl l 
+deriveTH targetName list = SpliceDecl l 
         (SpliceExp l 
             (ParenSplice l 
                 (App l 
@@ -111,14 +111,14 @@ deriveTH nam list = SpliceDecl l
                     (List l 
                         [TypQuote l
                             (UnQual l
-                                nam
+                                targetName
                             )
                         ]
                     )
                 )
             )
         )
-    where l = ann nam
+    where l = ann targetName
 
 
 -- | Element for a thing to derive with Template Haskell

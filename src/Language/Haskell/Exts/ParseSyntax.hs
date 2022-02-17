@@ -322,6 +322,7 @@ data PType l
      | TyBang l (BangType l) (Unpackedness l) (PType l) -- ^ Strict type marked with \"@!@\" or type marked with UNPACK pragma.
      | TyWildCard l (Maybe (Name l))            -- ^ Type wildcard
      | TyQuasiQuote l String String             -- ^ @[qq| |]@
+     | TyComp l (Name l) [Name l]               -- ^ Type  composition, e.g. C ==> (A, B)
   deriving (Eq, Show, Functor)
 
 instance Annotated PType where
@@ -346,6 +347,7 @@ instance Annotated PType where
       TyBang  l _ _ _                 -> l
       TyWildCard  l _               -> l
       TyQuasiQuote l _ _            -> l
+      TyComp l _ _                  -> l
     amap f t' = case t' of
       TyForall l mtvs mcx t         -> TyForall (f l) mtvs mcx t
       TyStar  l                     -> TyStar (f l)
@@ -367,6 +369,7 @@ instance Annotated PType where
       TyBang  l b u t                 -> TyBang (f l) b u t
       TyWildCard l mn               -> TyWildCard (f l) mn
       TyQuasiQuote l n s            -> TyQuasiQuote (f l) n s
+      TyComp l c t                  -> TyComp (f l) c t
 
 data PAsst l
     = TypeA l (PType l)

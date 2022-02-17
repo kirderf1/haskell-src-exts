@@ -1715,3 +1715,6 @@ instance SrcInfo loc => Pretty (P.PType loc) where
         prettyPrec _ (P.TyBang _ b u t) = pretty u <+> pretty b <> prettyPrec prec_atype t
         prettyPrec _ (P.TyWildCard _ mn) = char '_' <> maybePP pretty mn
         prettyPrec _ (P.TyQuasiQuote _ n qt) = text ("[$" ++ n ++ "|" ++ qt ++ "|]")
+        prettyPrec _ (P.TyComp _ c ps) =
+                let ds = map pretty ps
+                 in myFsep [pretty c, text "==>", parenList ds]

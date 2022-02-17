@@ -651,6 +651,7 @@ data Type l
      | TyBang l (BangType l) (Unpackedness l) (Type l)           -- ^ Strict type marked with \"@!@\" or type marked with UNPACK pragma.
      | TyWildCard l (Maybe (Name l))            -- ^ Either an anonymous of named type wildcard
      | TyQuasiQuote l String String             -- ^ @[$/name/| /string/ |]@
+     | TyComp l (Name l) [Name l]               -- ^ Type  composition, e.g. C ==> (A, B)
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
 data MaybePromotedName l = PromotedName l (QName l) | UnpromotedName l (QName l)

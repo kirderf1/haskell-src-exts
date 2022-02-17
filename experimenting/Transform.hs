@@ -18,16 +18,19 @@ transform (ParseOk ast) = ParseOk $ transformModule ast
 
 -- | Transform a module 
 transformModule :: Module SrcSpanInfo -> Module SrcSpanInfo
-transformModule (Module srcinfo mhead ps is ds) = do
-    let ps' = modifyPragmas srcinfo ps
-    let ds' = map transformDecl ds
-    (Module srcinfo mhead ps' is ds')
+transformModule m@(Module srcinfo mhead ps is ds) = do
+    if pragmasContain "ComposableTypes" ps
+        then do
+            let ps' = modifyPragmas srcinfo ps
+            let ds' = concatMap transformDecl ds
+            (Module srcinfo mhead ps' is ds')
+        else m
 -- Module l (Maybe (ModuleHead l)) [ModulePragma l] [ImportDecl l] [Decl l]
 transformModule xml = xml 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
 
 -- | Transform a top level declaration
-transformDecl :: Decl SrcSpanInfo -> Decl SrcSpanInfo
+transformDecl :: Decl SrcSpanInfo -> [Decl SrcSpanInfo]
 transformDecl (PieceDecl srcinfo cat nam cs ders) = 
     -- add cat to list of categories
     let parname = getParName (ann nam)
@@ -43,9 +46,10 @@ transformDecl (PieceDecl srcinfo cat nam cs ders) =
         cspar
         (functorDerive : ders)
         )
+    : [deriveTHPiece nam]
 
 
-transformDecl d = d
+transformDecl d = [d]
 
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 
     parameter instead of the name of the category it belongs to.
@@ -71,6 +75,7 @@ conDeclToQual c = QualConDecl (ann c) Nothing Nothing c
 
 
 -- TODO: Add deriving functor in tuple of one derive, not in list. 
+-- (If we want user to be able to add deriving clauses)
 -- Gives this error message for multiple deriving clauses:
 -- Illegal use of multiple, consecutive deriving clauses
 -- Use DerivingStrategies to allow this
@@ -92,7 +97,42 @@ getParName info = Ident info "a"
 
 
 -- TODO: Check what should be derived by template Haskell, and build the corresponding tree.
-deriveTH = undefined
+
+deriveTHPiece :: Name l -> Decl l 
+deriveTHPiece nam = deriveTH nam ["makeTraversable", "makeFoldable", "makeEqF",
+                                  "makeShowF", "smartConstructors", "smartAConstructors"]                                
+
+
+deriveTH :: Name l -> [String] -> Decl l 
+deriveTH nam@(Ident l s) list = SpliceDecl l 
+        (SpliceExp l 
+            (ParenSplice l 
+                (App l 
+                    (App l 
+                        (Var l
+                            (UnQual l 
+                                (Ident l "derive")
+                            )
+                        ) 
+                        (List l 
+                            (map (deriveTHListElem l) list)
+                        )
+                    ) 
+                    (List l 
+                        [TypQuote l
+                            (UnQual l
+                                nam
+                            )
+                        ]
+                    )
+                )
+            )
+        )
+
+deriveTHListElem :: l -> String -> Exp l
+deriveTHListElem l nam = Var l (UnQual l (Ident l nam))
+
+
 -- Something like:
 -- take list of all categories and for all of them: 
 --      make a derive statement for makeFoldable, smartConstructors etc that are always needed.
@@ -100,18 +140,21 @@ deriveTH = undefined
 -- also derive liftSum for the coproduct type
 
 
--- $(derive [makeTraversable, makeFoldable,
---makeEqF, makeShowF, smartConstructors, smartAConstructors]
---[''Value, ''Op])
-
 -- TODO: possibly more pragmas?
 -- | Modify a list of pragmas to remove ComposableTypes and add DeriveFunctor, TemplateHaskell
 modifyPragmas :: l -> [ModulePragma l] -> [ModulePragma l]
-modifyPragmas l ps =  pragma l "DeriveFunctor" : pragma l "TemplateHaskell" : removeCompTypes ps
+modifyPragmas l ps =  addPragma l "DeriveFunctor" $ addPragma l "TemplateHaskell" $ removeCompTypes ps
     where  
-        pragma :: l -> String -> ModulePragma l 
-        pragma l nam = LanguagePragma l [Ident l nam]
-        removeCompTypes = filter (notMatch "ComposableTypes")
-        notMatch s (LanguagePragma _ [Ident _ nam]) = nam /= s
-        notMatch _ _ = True
+        addPragma :: l -> String -> [ModulePragma l] -> [ModulePragma l]
+        addPragma l1 nam prs = if pragmasContain nam prs 
+                                 then prs
+                                 else (LanguagePragma l1 [Ident l1 nam]):prs
+        removeCompTypes = filter (not . matchPragma "ComposableTypes")
+
+pragmasContain :: String -> [ModulePragma l] -> Bool
+pragmasContain nam = any (matchPragma nam)
+        
+matchPragma :: String -> ModulePragma l -> Bool
+matchPragma s (LanguagePragma _ [Ident _ nam]) = nam == s
+matchPragma _ _ = False
 

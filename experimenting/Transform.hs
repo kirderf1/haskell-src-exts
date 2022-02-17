@@ -11,27 +11,27 @@ data Env l = Env {
 }
 
 -- | Transform tree from parse result.
-transform :: ParseResult (Module SrcSpanInfo) -> ParseResult (Module SrcSpanInfo)
+transform :: ParseResult (Module l) -> ParseResult (Module l)
 transform f@ParseFailed{} = f
 transform (ParseOk ast) = ParseOk $ transformModule ast
 
 
 -- | Transform a module 
-transformModule :: Module SrcSpanInfo -> Module SrcSpanInfo
-transformModule m@(Module srcinfo mhead ps is ds) = do
+transformModule :: Module l -> Module l
+transformModule m@(Module l mhead ps is ds) = do
     if pragmasContain "ComposableTypes" ps
         then do
-            let ps' = modifyPragmas srcinfo ps
+            let ps' = modifyPragmas l ps
             let ds' = concatMap transformDecl ds
-            (Module srcinfo mhead ps' is ds')
+            (Module l mhead ps' is ds')
         else m
 -- Module l (Maybe (ModuleHead l)) [ModulePragma l] [ImportDecl l] [Decl l]
 transformModule xml = xml 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
 
 -- | Transform a top level declaration
-transformDecl :: Decl SrcSpanInfo -> [Decl SrcSpanInfo]
-transformDecl (PieceDecl srcinfo cat nam cs ders) = 
+transformDecl :: Decl l -> [Decl l]
+transformDecl (PieceDecl l cat nam cs ders) = 
     -- add cat to list of categories
     let parname = getParName (ann nam)
         cspar = map (parametConstructor parname cat) cs
@@ -39,8 +39,8 @@ transformDecl (PieceDecl srcinfo cat nam cs ders) =
         functorDerive = deriveFunctor nam parname aders
         in
     (DataDecl 
-        srcinfo 
-        (DataType srcinfo)
+        l 
+        (DataType l)
         Nothing 
         (DHApp (ann nam) (DHead (ann nam) nam) (UnkindedVar (ann nam) parname))
         cspar
@@ -68,11 +68,6 @@ parametConstructor parname cat (QualConDecl l0 v c (ConDecl l1 cname types)) =
         match _ _ = False
 parametConstructor _ _ c = c 
 
--- | Wrap a ConDecl in a QualConDecl
--- Probably not needed anymore
-conDeclToQual :: ConDecl l -> QualConDecl l
-conDeclToQual c = QualConDecl (ann c) Nothing Nothing c
-
 
 -- TODO: Add deriving functor in tuple of one derive, not in list. 
 -- (If we want user to be able to add deriving clauses)
@@ -96,15 +91,14 @@ getParName :: l -> Name l
 getParName info = Ident info "a"
 
 
--- TODO: Check what should be derived by template Haskell, and build the corresponding tree.
-
+-- | Template Haskell derive for a piece
 deriveTHPiece :: Name l -> Decl l 
 deriveTHPiece nam = deriveTH nam ["makeTraversable", "makeFoldable", "makeEqF",
                                   "makeShowF", "smartConstructors", "smartAConstructors"]                                
 
-
+-- | Template Haskell derive for a certain data type from a list of things to derive
 deriveTH :: Name l -> [String] -> Decl l 
-deriveTH nam@(Ident l s) list = SpliceDecl l 
+deriveTH nam@(Ident l _) list = SpliceDecl l 
         (SpliceExp l 
             (ParenSplice l 
                 (App l 
@@ -129,15 +123,13 @@ deriveTH nam@(Ident l s) list = SpliceDecl l
             )
         )
 
+
+-- | Element for a thing to derive with Template Haskell
 deriveTHListElem :: l -> String -> Exp l
 deriveTHListElem l nam = Var l (UnQual l (Ident l nam))
 
 
--- Something like:
--- take list of all categories and for all of them: 
---      make a derive statement for makeFoldable, smartConstructors etc that are always needed.
---      perhaps look at if there is some things that should only be derived in some cases
--- also derive liftSum for the coproduct type
+-- TODO: derive liftSum for the class for a function/algebra
 
 
 -- TODO: possibly more pragmas?
@@ -151,9 +143,11 @@ modifyPragmas l ps =  addPragma l "DeriveFunctor" $ addPragma l "TemplateHaskell
                                  else (LanguagePragma l1 [Ident l1 nam]):prs
         removeCompTypes = filter (not . matchPragma "ComposableTypes")
 
+-- | Check if the list of pragmas contain a certain one
 pragmasContain :: String -> [ModulePragma l] -> Bool
 pragmasContain nam = any (matchPragma nam)
         
+-- | Check if a pragma match the given String
 matchPragma :: String -> ModulePragma l -> Bool
 matchPragma s (LanguagePragma _ [Ident _ nam]) = nam == s
 matchPragma _ _ = False

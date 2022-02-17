@@ -10,11 +10,6 @@ data Env l = Env {
     categories :: [(Name l , [Name l])] -- Map Category [Name]
 }
 
--- | Transform tree from parse result.
-transform :: Module l -> ParseResult (Module l)
-transform ast = ParseOk $ transformModule ast
-
-
 -- | Transform a module 
 transformModule :: Module l -> Module l
 transformModule m@(Module l mhead ps is ds) = do

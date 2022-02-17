@@ -16,19 +16,13 @@ main = do
       putStrLn "AST structure before:"
       showModule ast
       putStrLn "Pretty-print before:"
-      prettyPrinterTest ast
-      let res = transform ast
-      case res of           -- print tree without annotations
-            f@ParseFailed{} -> print f
-            ParseOk ast' -> do
-              putStrLn "AST structure after:"
-              showModule ast'
+      putStrLn $ prettyPrint ast
+      let ast' = transformModule ast
+      putStrLn "AST structure after:"
+      showModule ast'
 
 showModule :: Module SrcSpanInfo -> IO()
 showModule = putStrLn . show . removeSrcSpanInfo
-
-prettyPrinterTest :: Module SrcSpanInfo -> IO () 
-prettyPrinterTest ast = putStrLn $ prettyPrint ast
 
 removeSrcSpanInfo :: Module SrcSpanInfo -> Module ()
 removeSrcSpanInfo = fmap $ const ()

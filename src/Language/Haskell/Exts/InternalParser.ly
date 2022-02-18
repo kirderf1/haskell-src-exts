@@ -1023,6 +1023,7 @@ the (# and #) lexemes. Kinds will be handled at the kind rule.
 >       | TIDSPLICE                     { let Loc l (THTIdEscape s) = $1 in TySplice (nIS l) $ TIdSplice (nIS l) s }
 >       | '_'                           { TyWildCard (nIS $1) Nothing }
 >       | QUASIQUOTE                    { let Loc l (THQuasiQuote (n,q)) = $1 in TyQuasiQuote (nIS l) n q }
+>       | tyvar '==>' '(' con_list ')'  { let (_, names) = $4 in TyComp (ann $1 <++> nIS $5) $1 names}
 >       | ptype_(ostar,kstar)           { % checkEnabled DataKinds >> return (TyPromoted (ann $1) $1) }
 
 > ptype_(ostar,kstar) :: { Promoted L }

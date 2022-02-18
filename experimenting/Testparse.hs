@@ -2,6 +2,8 @@ module Main where
 
 import Language.Haskell.Exts
 import Transform
+import Control.Monad.Except
+
 
 main ::  IO ()
 main = do
@@ -17,9 +19,12 @@ main = do
       showModule ast
       putStrLn "Pretty-print before:"
       putStrLn $ prettyPrint ast
-      let ast' = transformModule ast
-      putStrLn "AST structure after:"
-      showModule ast'
+      case runExcept (transform ast) of
+           Left msg -> putStrLn msg
+           Right ast' -> do putStrLn "AST structure after:"
+                            showModule ast'
+                            putStrLn "Pretty-print after:"
+                            putStrLn $ prettyPrint ast'
 
 showModule :: Module SrcSpanInfo -> IO()
 showModule = putStrLn . show . removeSrcSpanInfo

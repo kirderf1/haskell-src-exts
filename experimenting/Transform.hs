@@ -2,28 +2,36 @@ module Transform where
 
 import Language.Haskell.Exts
 
--- import           Data.Map   (Map)
--- import qualified Data.Map as Map
+import           Data.Map   (Map)
+import qualified Data.Map as Map
+import Control.Monad.Reader
+import Control.Monad.Except
 
--- perhaps have a state to keep track of the categories
-data Env l = Env {
-    categories :: [(Name l , [Name l])] -- Map Category [Name]
-}
+-- | Map of category names to pieces
+type Sig = Map String [String]
+
+type Transform = ReaderT Sig (Except String)
+
+transform :: Module l -> Except String (Module l)
+transform m@(Module _l _mhead _pragmas _imports decls) = do
+    sig <- buildSig decls
+    runReaderT (transformModule m) sig 
 
 -- | Transform a module to remove syntax for composable types if the pragma is present
-transformModule :: Module l -> Module l
+transformModule :: Module l -> Transform (Module l)
 transformModule m@(Module l mhead pragmas imports decls) =
     if pragmasContain "ComposableTypes" pragmas
-        then
+        then do
             let pragmas' = modifyPragmas l pragmas
-                decls' = concatMap transformDecl decls
-            in (Module l mhead pragmas' imports decls')
-        else m
-transformModule xml = xml 
+            
+            decls' <- liftM concat (mapM transformDecl decls)
+            return (Module l mhead pragmas' imports decls')
+        else return m
+transformModule xml = return xml 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
 
 -- | Transform a top level declaration to one or more new declarations
-transformDecl :: Decl l -> [Decl l]
+transformDecl :: Decl l -> Transform [Decl l]
 transformDecl (PieceDecl l category headName cons derives) = 
     -- add cat to list of categories
     let nameL = ann headName
@@ -32,7 +40,7 @@ transformDecl (PieceDecl l category headName cons derives) =
         aders = head $ map ann derives
         functorDerive = deriveFunctor aders
         in
-    (DataDecl 
+    return ((DataDecl 
         l 
         (DataType l)
         Nothing 
@@ -40,12 +48,19 @@ transformDecl (PieceDecl l category headName cons derives) =
         cspar
         (functorDerive : derives)
         )
-    : [deriveTHPiece headName]
+        : [deriveTHPiece headName])
 
-transformDecl (TypeDecl l dhead (TyComp _l2 _nam types)) = 
-    [TypeDecl l dhead (coprod types)]
+transformDecl (TypeDecl l dhead typ) = do
+    typ' <- transformType typ
+    return [TypeDecl l dhead typ']
 
-transformDecl d = [d]
+transformDecl d = return [d]
+
+-- | Transform a type
+transformType :: Type l -> Transform (Type l )
+transformType (TyComp _l2 category types) = 
+    -- check if piece constructors are in category
+    coprod types
 
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 
     parameter instead of the name of the category it belongs to.
@@ -150,12 +165,19 @@ matchPragma :: String -> ModulePragma l -> Bool
 matchPragma s (LanguagePragma _ [Ident _ nam]) = nam == s
 matchPragma _ _ = False
 
-coprod :: [Name l] -> Type l
-coprod [nam] = TyCon l (UnQual l nam)
+coprod :: [Name l] -> Transform (Type l)
+coprod [nam] = return $ TyCon l (UnQual l nam)
     where l = ann nam
-coprod (nam:ns) = TyInfix l (TyCon l (UnQual l nam)) 
-                                        (UnpromotedName l (UnQual l (Symbol l ":+:")))
-                                        (coprod ns)
+coprod (nam:ns) = do
+    rest <- coprod ns
+    return (TyInfix l (TyCon l (UnQual l nam)) 
+                      (UnpromotedName l (UnQual l (Symbol l ":+:")))
+                      rest)
     where l = ann nam
-coprod _ = undefined
+coprod _ = throwError "Trying to form coproduct of no arguments"
+
+
+buildSig :: [Decl l] -> Except String Sig
+buildSig _ = return Map.empty 
+
 

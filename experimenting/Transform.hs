@@ -178,6 +178,22 @@ coprod _ = throwError "Trying to form coproduct of no arguments"
 
 
 buildSig :: [Decl l] -> Except String Sig
-buildSig _ = return Map.empty 
+buildSig [] = return Map.empty 
+buildSig ((PieceDecl _l category _headName cons _derives):decls) = do
+    sig <- buildSig decls 
+    idCat <- nameID category
+    idCons <- mapM idCon cons
+    case Map.lookup idCat sig of
+        Just oldCons -> return $ Map.insert idCat (idCons ++ oldCons) sig
+        Nothing -> return $ Map.insert idCat idCons sig
+    where 
+        nameID :: Name l -> Except String String
+        nameID (Ident _ s) = return s
+        nameID _ = throwError "buildSig: unexpected type of name"
+        idCon :: QualConDecl l -> Except String String
+        idCon (QualConDecl _ _ _ (ConDecl _ cname _)) = nameID cname
+        idCon _ = throwError "buildSig: unexpected type of constructor"
+    
+buildSig (_:decls) = buildSig decls
 
 

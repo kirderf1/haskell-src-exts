@@ -4,11 +4,14 @@ import Language.Haskell.Exts
 
 import           Data.Map   (Map)
 import qualified Data.Map as Map
+import           Data.Set   (Set)
+import qualified Data.Set as Set
+
 import Control.Monad.Reader
 import Control.Monad.Except
 
 -- | Map of category names to pieces
-type Sig = Map String [String]
+type Sig = Map String (Set String)
 
 type Transform = ReaderT Sig (Except String)
 
@@ -184,8 +187,8 @@ buildSig ((PieceDecl _l category _headName cons _derives):decls) = do
     idCat <- nameID category
     idCons <- mapM idCon cons
     case Map.lookup idCat sig of
-        Just oldCons -> return $ Map.insert idCat (idCons ++ oldCons) sig
-        Nothing -> return $ Map.insert idCat idCons sig
+        Just oldCons -> return $ Map.insert idCat (Set.union (Set.fromList idCons) oldCons) sig
+        Nothing -> return $ Map.insert idCat (Set.fromList idCons) sig
     where 
         nameID :: Name l -> Except String String
         nameID (Ident _ s) = return s

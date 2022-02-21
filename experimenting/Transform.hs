@@ -19,6 +19,8 @@ transform :: Module l -> Except String (Module l)
 transform m@(Module _l _mhead _pragmas _imports decls) = do
     sig <- buildSig decls
     runReaderT (transformModule m) sig 
+transform xml = return xml 
+-- ^ XmlPage and XmlHybrid formats not handled (yet)
 
 -- | Transform a module to remove syntax for composable types if the pragma is present
 transformModule :: Module l -> Transform (Module l)
@@ -26,9 +28,10 @@ transformModule m@(Module l mhead pragmas imports decls) =
     if pragmasContain "ComposableTypes" pragmas
         then do
             let pragmas' = modifyPragmas l pragmas
+                imports' = modifyImports l imports
             
             decls' <- liftM concat (mapM transformDecl decls)
-            return (Module l mhead pragmas' imports decls')
+            return (Module l mhead pragmas' imports' decls')
         else return m
 transformModule xml = return xml 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
@@ -36,7 +39,6 @@ transformModule xml = return xml
 -- | Transform a top level declaration to one or more new declarations
 transformDecl :: Decl l -> Transform [Decl l]
 transformDecl (PieceDecl l category headName cons derives) = 
-    -- add cat to list of categories
     let nameL = ann headName
         parname = getParName nameL
         cspar = map (parametConstructor parname category) cons
@@ -168,6 +170,7 @@ matchPragma :: String -> ModulePragma l -> Bool
 matchPragma s (LanguagePragma _ [Ident _ nam]) = nam == s
 matchPragma _ _ = False
 
+-- | Form coproduct type from a list of pieces
 coprod :: [Name l] -> Transform (Type l)
 coprod [nam] = return $ TyCon l (UnQual l nam)
     where l = ann nam
@@ -179,7 +182,7 @@ coprod (nam:ns) = do
     where l = ann nam
 coprod _ = throwError "Trying to form coproduct of no arguments"
 
-
+-- | Build signature, map of categories to their pieces
 buildSig :: [Decl l] -> Except String Sig
 buildSig [] = return Map.empty 
 buildSig ((PieceDecl _l category _headName cons _derives):decls) = do
@@ -199,4 +202,31 @@ buildSig ((PieceDecl _l category _headName cons _derives):decls) = do
     
 buildSig (_:decls) = buildSig decls
 
+-- | Modify a list of import declarations to add the ones needed for compdata
+modifyImports :: l -> [ImportDecl l] -> [ImportDecl l]
+modifyImports l is =  concatMap (addImport l is)
+                                ["Data.Comp", "Data.Comp.Derive",
+                                 "Data.Comp.Show ()", "Data.Comp.Equality ()"] 
+    where  
+        addImport :: l -> [ImportDecl l] -> String -> [ImportDecl l]
+        addImport l1 is1 nam = if importsContain nam is1 
+                                 then is1
+                                 else (ImportDecl
+                                 { importAnn = l1                     -- ^ annotation, used by parser for position of the @import@ keyword.
+                                 , importModule = ModuleName l1 nam   -- ^ name of the module imported.
+                                 , importQualified = False            -- ^ imported @qualified@?
+                                 , importSrc = False                  -- ^ imported with @{-\# SOURCE \#-}@?
+                                 , importSafe = False                 -- ^ Import @safe@?
+                                 , importPkg = Nothing                -- ^ imported with explicit package name
+                                 , importAs = Nothing                 -- ^ optional alias name in an @as@ clause.
+                                 , importSpecs = Nothing              -- ^ optional list of import specifications.
+                                 }):is1
 
+
+-- | Check if the list of import declarations contain a certain one
+importsContain :: String -> [ImportDecl l] -> Bool
+importsContain nam = any (matchImport nam)
+        
+-- | Check if a import declaration match the given String
+matchImport :: String -> ImportDecl l -> Bool
+matchImport s (ImportDecl {importModule = ModuleName _ nam}) = nam == s

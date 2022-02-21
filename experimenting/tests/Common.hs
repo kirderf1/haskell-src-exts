@@ -7,4 +7,4 @@ data piece Expr ==> Value = Const Int -- | Pair Expr Expr
 data piece Expr ==> Op = Add Expr Expr | Mult Expr Expr -- | Fst Expr | Snd Expr
 
 -- Signature for the simple expression language
-type Sig = Expr(Op, Value)
+type Sig = Expr ==> (Op, Value)

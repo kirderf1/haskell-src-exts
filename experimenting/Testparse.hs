@@ -7,7 +7,7 @@ import Control.Monad.Except
 
 main ::  IO ()
 main = do
-  let file = "experimenting/tests/Example.hs"
+  let file = "experimenting/tests/Common.hs"
   res <- parseFile file
   case res of           -- print tree without annotations
         f@ParseFailed{} -> print f

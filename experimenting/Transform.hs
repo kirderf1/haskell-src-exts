@@ -150,10 +150,11 @@ deriveTHListElem l nam = Var l (UnQual l (Ident l nam))
 
 
 -- TODO: possibly more pragmas?
--- | Modify a list of pragmas to remove ComposableTypes and add DeriveFunctor, TemplateHaskell
+-- | Modify a list of pragmas to remove ComposableTypes and add the ones needed for compdata
 modifyPragmas :: l -> [ModulePragma l] -> [ModulePragma l]
 modifyPragmas l ps =  concatMap (addPragma l (removeCompTypes ps)) 
-                                ["DeriveFunctor","TemplateHaskell","TypeOperators"] 
+                                ["DeriveFunctor","TemplateHaskell","TypeOperators"
+                                ,"FlexibleContexts"] 
     where  
         addPragma :: l -> [ModulePragma l] -> String -> [ModulePragma l]
         addPragma l1 prs nam = if pragmasContain nam prs 

@@ -53,6 +53,7 @@ instance TypeMap Decl where
             RoleAnnotDecl    l t rs          -> RoleAnnotDecl l t rs
             CompletePragma   l cs ty         -> CompletePragma l cs ty
             PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh (mapType f <$> cds) (mapType f <$> ders)
+            CompFunDef  l ns t               -> CompFunDef l ns (mapType f t)
 
 instance TypeMap PatternSynDirection where
     mapType _ Unidirectional                 = Unidirectional

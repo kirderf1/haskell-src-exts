@@ -583,6 +583,10 @@ instance  Pretty (Decl l) where
                                              (map pretty constrList))
                         $$$ ppIndent letIndent (map pretty derives))
 
+        pretty (CompFunDef _ nameList qualType) =
+                mySep ((punctuate comma . map pretty $ nameList)
+                      ++ [text "-:", pretty qualType])
+
 instance Pretty (InstRule l) where
     pretty (IRule _ tvs mctxt qn)  =
             mySep [ppForall tvs

@@ -166,6 +166,7 @@ Reserved operators
 >       '!'     { Loc $$ Exclamation }  -- 50
 >       '*'     { Loc $$ Star }
 >       '==>'   { Loc $$ ExtraArrow }
+>       '-:'   { Loc $$ MinusColon }
 
 Arrows
 
@@ -697,6 +698,12 @@ Requires Composable Types extension
 >                      let { (qds,ss,minf) = $6;
 >                            l = nIS $1 <++> nIS $2 <++> nIS $4 <++> $3 <> $5 <+?> minf <+?> fmap ann (listToMaybe $7) <** ss};
 >                      return (PieceDecl l $3 $5 (reverse qds) (reverse $7)) } }
+
+>       | exp0b '-:' truectype           {% do { v <- checkSigVar $1;
+>                                            return $ CompFunDef ($1 <> $3 <** [$2]) [v] $3 } }
+>       | exp0b ',' vars '-:' truectype  {% do { v <- checkSigVar $1;
+>                                            let {(vs,ss,_) = $3 ; l = $1 <> $5 <** ($2 : reverse ss ++ [$4]) } ;
+>                                            return $ CompFunDef l (v : reverse vs) $5 } }
 
 >       | decl          { $1 }
 

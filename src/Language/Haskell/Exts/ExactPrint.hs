@@ -928,6 +928,10 @@ instance ExactP Decl where
         -- the next line works for empty data types since the srcInfoPoints will be empty then
         printInterleaved (zip (srcInfoPoints l) ("=": repeat "|")) constrs
         mapM_ exactPC mder
+    CompFunDef l ns t -> do
+        let pts = srcInfoPoints l
+        printInterleaved' (zip pts (replicate (length pts - 1) "," ++ ["-:"])) ns
+        exactPC t
 
 
 instance ExactP Role where

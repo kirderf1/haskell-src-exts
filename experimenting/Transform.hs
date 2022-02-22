@@ -15,13 +15,14 @@ import Control.Monad.Except
 -- | Map of category names to pieces
 type Sig = Map String (Set String)
 
+-- | Transform monad containing signature of categories and handles error messages as Strings.
 type Transform = ReaderT Sig (Except String)
 
 transform :: Module l -> Except String (Module l)
 transform m@(Module _l _mhead _pragmas _imports decls) = do
     sig <- buildSig decls
     runReaderT (transformModule m) sig 
-transform xml = return xml 
+transform _xml = throwError "transform not defined for xml formats" 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
 
 -- | Transform a module to remove syntax for composable types if the pragma is present
@@ -35,7 +36,7 @@ transformModule m@(Module l mhead pragmas imports decls) =
             decls' <- liftM concat (mapM transformDecl decls)
             return $ mapType transformType (Module l mhead pragmas' imports' decls')
         else return m
-transformModule xml = return xml 
+transformModule _xml = throwError "transformModule not defined for xml formats" 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
 
 -- | Transform a top level declaration to one or more new declarations
@@ -227,7 +228,7 @@ modifyImports l is =  concatMap (addImport l is)
                                  else (ImportDecl
                                  { importAnn = l1                     -- ^ annotation, used by parser for position of the @import@ keyword.
                                  , importModule = ModuleName l1 nam   -- ^ name of the module imported.
-                                 , importQualified = False            -- ^ imported @qualified@?
+                                 , importQualified = True            -- ^ imported @qualified@?
                                  , importSrc = False                  -- ^ imported with @{-\# SOURCE \#-}@?
                                  , importSafe = False                 -- ^ Import @safe@?
                                  , importPkg = Nothing                -- ^ imported with explicit package name

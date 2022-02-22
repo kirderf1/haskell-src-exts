@@ -122,7 +122,7 @@ deriveTH targetName list = SpliceDecl l
                     (App l 
                         (Var l
                             (UnQual l 
-                                (Ident l "derive")
+                                (Ident l "Data.Comp.Derive.derive")
                             )
                         ) 
                         (List l 
@@ -144,7 +144,7 @@ deriveTH targetName list = SpliceDecl l
 
 -- | Element for a thing to derive with Template Haskell
 deriveTHListElem :: l -> String -> Exp l
-deriveTHListElem l nam = Var l (UnQual l (Ident l nam))
+deriveTHListElem l nam = Var l (UnQual l (Ident l ("Data.Comp.Derive." ++ nam)))
 
 
 -- TODO: derive liftSum for the class for a function/algebra
@@ -190,7 +190,7 @@ coprod [nam] = TyCon l (UnQual l nam)
     where l = ann nam
 coprod (nam:ns) = 
     (TyInfix l (TyCon l (UnQual l nam)) 
-               (UnpromotedName l (UnQual l (Symbol l ":+:")))
+               (UnpromotedName l (UnQual l (Symbol l "Data.Comp.:+:")))
                 rest)
     where l = ann nam
           rest = coprod ns

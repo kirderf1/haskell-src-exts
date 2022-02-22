@@ -185,12 +185,12 @@ coprod (nam:ns) = do
 coprod _ = throwError "Trying to form coproduct of no arguments"
 -}
 -- TODO: Fix monadic function
-coprod :: [Name l] -> Type l
-coprod [nam] = TyCon l (UnQual l nam)
+coprod :: [QName l] -> Type l
+coprod [nam] = TyCon l nam
     where l = ann nam
 coprod (nam:ns) = 
-    (TyInfix l (TyCon l (UnQual l nam)) 
-               (UnpromotedName l (UnQual l (Symbol l "Data.Comp.:+:")))
+    (TyInfix l (TyCon l nam)
+               (UnpromotedName l (Qual l (ModuleName l "Data.Comp") (Symbol l ":+:")))
                 rest)
     where l = ann nam
           rest = coprod ns

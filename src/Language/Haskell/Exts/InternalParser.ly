@@ -1023,7 +1023,7 @@ the (# and #) lexemes. Kinds will be handled at the kind rule.
 >       | TIDSPLICE                     { let Loc l (THTIdEscape s) = $1 in TySplice (nIS l) $ TIdSplice (nIS l) s }
 >       | '_'                           { TyWildCard (nIS $1) Nothing }
 >       | QUASIQUOTE                    { let Loc l (THQuasiQuote (n,q)) = $1 in TyQuasiQuote (nIS l) n q }
->       | tyvar '==>' '(' con_list ')'  { let (_, names) = $4 in TyComp (ann $1 <++> nIS $5) $1 names}
+>       | qcon '==>' '(' qcon_list ')'  { let (_, names) = $4 in TyComp (ann $1 <++> nIS $5) $1 names}
 >       | ptype_(ostar,kstar)           { % checkEnabled DataKinds >> return (TyPromoted (ann $1) $1) }
 
 > ptype_(ostar,kstar) :: { Promoted L }
@@ -1958,6 +1958,11 @@ Implicit parameter
 > qcon  :: { QName L }
 >       : qconid                { $1 }
 >       | '(' gconsym ')'       { updateQNameLoc ($1 <^^> $3 <** [$1, srcInfoSpan (ann $2), $3]) $2 }
+
+> qcon_list :: { ([S], [QName L]) }
+>        : qcon                 { ([], [$1]) }
+>        | qcon ',' qcon_list   { let (ss, cs) = $3
+>                                 in ($2 : ss, $1 :cs) }
 
 > varop :: { Name L }
 >       : varsym                { $1 }

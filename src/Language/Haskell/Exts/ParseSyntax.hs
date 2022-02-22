@@ -322,7 +322,7 @@ data PType l
      | TyBang l (BangType l) (Unpackedness l) (PType l) -- ^ Strict type marked with \"@!@\" or type marked with UNPACK pragma.
      | TyWildCard l (Maybe (Name l))            -- ^ Type wildcard
      | TyQuasiQuote l String String             -- ^ @[qq| |]@
-     | TyComp l (Name l) [Name l]               -- ^ Type  composition, e.g. C ==> (A, B)
+     | TyComp l (QName l) [QName l]               -- ^ Type  composition, e.g. C ==> (A, B)
   deriving (Eq, Show, Functor)
 
 instance Annotated PType where

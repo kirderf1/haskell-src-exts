@@ -1131,6 +1131,9 @@ checkT t simple = case t of
     TyQuasiQuote l n s -> do
                               checkEnabled QuasiQuotes
                               return $ S.TyQuasiQuote l n s
+    TyComp l c ts -> do
+            checkEnabled ComposableTypes
+            return $ S.TyComp l c ts
     _   -> fail $ "Parse error in type: " ++ prettyPrint t
 
 getMaybePromotedQName :: MaybePromotedName l -> QName l

@@ -2,6 +2,8 @@ module Transform where
 
 import Language.Haskell.Exts
 
+import Types
+
 import           Data.Map   (Map)
 import qualified Data.Map as Map
 import           Data.Set   (Set)
@@ -31,7 +33,7 @@ transformModule m@(Module l mhead pragmas imports decls) =
                 imports' = modifyImports l imports
             
             decls' <- liftM concat (mapM transformDecl decls)
-            return (Module l mhead pragmas' imports' decls')
+            return $ mapType transformType (Module l mhead pragmas' imports' decls')
         else return m
 transformModule xml = return xml 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
@@ -55,17 +57,15 @@ transformDecl (PieceDecl l category headName cons derives) =
         )
         : [deriveTHPiece headName])
 
-transformDecl (TypeDecl l dhead typ) = do
-    typ' <- transformType typ
-    return [TypeDecl l dhead typ']
-
 transformDecl d = return [d]
 
 -- | Transform a type
-transformType :: Type l -> Transform (Type l )
+-- transformType :: Type l -> Transform (Type l )  -- the type signature we actually want
+transformType :: Type l -> Type l
 transformType (TyComp _l2 category types) = 
     -- check if piece constructors are in category
     coprod types
+transformType t = t
 
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 
     parameter instead of the name of the category it belongs to.
@@ -172,7 +172,7 @@ matchPragma s (LanguagePragma _ [Ident _ nam]) = nam == s
 matchPragma _ _ = False
 
 -- | Form coproduct type from a list of pieces
-coprod :: [Name l] -> Transform (Type l)
+{-coprod :: [Name l] -> Transform (Type l)
 coprod [nam] = return $ TyCon l (UnQual l nam)
     where l = ann nam
 coprod (nam:ns) = do
@@ -182,6 +182,18 @@ coprod (nam:ns) = do
                       rest)
     where l = ann nam
 coprod _ = throwError "Trying to form coproduct of no arguments"
+-}
+-- TODO: Fix monadic function
+coprod :: [Name l] -> Type l
+coprod [nam] = TyCon l (UnQual l nam)
+    where l = ann nam
+coprod (nam:ns) = 
+    (TyInfix l (TyCon l (UnQual l nam)) 
+               (UnpromotedName l (UnQual l (Symbol l ":+:")))
+                rest)
+    where l = ann nam
+          rest = coprod ns
+coprod _ = undefined
 
 -- | Build signature, map of categories to their pieces
 buildSig :: [Decl l] -> Except String Sig

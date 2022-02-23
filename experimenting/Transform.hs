@@ -34,7 +34,7 @@ transformModule m@(Module l mhead pragmas imports decls) =
                 imports' = modifyImports l imports
             
             decls' <- liftM concat (mapM transformDecl decls)
-            return $ mapType transformType (Module l mhead pragmas' imports' decls')
+            mapType transformType (Module l mhead pragmas' imports' decls')
         else return m
 transformModule _xml = throwError "transformModule not defined for xml formats" 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
@@ -62,11 +62,11 @@ transformDecl d = return [d]
 
 -- | Transform a type
 -- transformType :: Type l -> Transform (Type l )  -- the type signature we actually want
-transformType :: Type l -> Type l
+transformType :: Type l -> Transform (Type l)
 transformType (TyComp _l2 category types) = 
     -- check if piece constructors are in category
-    coprod types
-transformType t = t
+    return $ coprod types
+transformType t = return t
 
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 
     parameter instead of the name of the category it belongs to.

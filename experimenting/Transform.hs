@@ -64,8 +64,20 @@ transformDecl d = return [d]
 transformType :: Type l -> Transform (Type l)
 transformType (TyComp l category types) = do
     -- check if piece constructors are in category
-    coprodtype <- coprod types
-    return $ TyApp l (TyCon l (UnQual l (Ident l "Term"))) (TyParen l coprodtype)
+    cats <- ask
+    cat <- lift $ catName category
+    case Map.lookup cat cats of
+        Nothing -> throwError "transformType: Trying to form type of unknown category"
+        Just pieces -> do 
+            typeNames <- mapM (lift . catName) types
+            lift $ checkInCategory pieces typeNames
+            coprodtype <- coprod types
+            return $ TyApp l (TyCon l (UnQual l (Ident l "Term"))) (TyParen l coprodtype)
+      where catName :: QName l -> Except String String
+            catName (Qual _l _moduleName (Ident _l1 c)) = return c
+            catName (UnQual _l (Ident _l1 c)) = return c
+            catName _ = throwError "transformType: unexpected type of category name"
+            -- TODO: special QName?
 transformType t = return t
 
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 
@@ -187,20 +199,17 @@ coprod _ = throwError "Trying to form coproduct of no arguments"
 -- | Build signature, map of categories to their pieces
 buildSig :: [Decl l] -> Except String Sig
 buildSig [] = return Map.empty 
-buildSig ((PieceDecl _l category _headName cons _derives):decls) = do
+buildSig ((PieceDecl _l category headName _cons _derives):decls) = do
     sig <- buildSig decls 
     idCat <- nameID category
-    idCons <- mapM idCon cons
+    idHead <- nameID headName
     case Map.lookup idCat sig of
-        Just oldCons -> return $ Map.insert idCat (Set.union (Set.fromList idCons) oldCons) sig
-        Nothing -> return $ Map.insert idCat (Set.fromList idCons) sig
+        Just oldCons -> return $ Map.insert idCat (Set.insert idHead oldCons) sig
+        Nothing -> return $ Map.insert idCat (Set.fromList [idHead]) sig
     where 
         nameID :: Name l -> Except String String
         nameID (Ident _ s) = return s
         nameID _ = throwError "buildSig: unexpected type of name"
-        idCon :: QualConDecl l -> Except String String
-        idCon (QualConDecl _ _ _ (ConDecl _ cname _)) = nameID cname
-        idCon _ = throwError "buildSig: unexpected type of constructor"
     
 buildSig (_:decls) = buildSig decls
 
@@ -232,3 +241,10 @@ importsContain nam = any (matchImport nam)
 -- | Check if a import declaration match the given String
 matchImport :: String -> ImportDecl l -> Bool
 matchImport s (ImportDecl {importModule = ModuleName _ nam}) = nam == s
+
+-- | Check if all parts of a composition type are in the category
+checkInCategory :: Set String -> [String] -> Except String ()
+checkInCategory _ [] = return ()
+checkInCategory pieces (p:ps) = if Set.member p pieces
+    then checkInCategory pieces ps
+    else throwError $ "checkInCategory: Piece: " ++ show p ++ " not found in category"

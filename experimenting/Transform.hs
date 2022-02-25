@@ -61,11 +61,11 @@ transformDecl (PieceDecl l category headName cons derives) =
 transformDecl d = return [d]
 
 -- | Transform a type
--- transformType :: Type l -> Transform (Type l )  -- the type signature we actually want
 transformType :: Type l -> Transform (Type l)
-transformType (TyComp _l2 category types) = 
+transformType (TyComp l category types) = do
     -- check if piece constructors are in category
-    return $ coprod types
+    coprodtype <- coprod types
+    return $ TyApp l (TyCon l (UnQual l (Ident l "Term"))) (TyParen l coprodtype)
 transformType t = return t
 
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 
@@ -173,28 +173,16 @@ matchPragma s (LanguagePragma _ [Ident _ nam]) = nam == s
 matchPragma _ _ = False
 
 -- | Form coproduct type from a list of pieces
-{-coprod :: [Name l] -> Transform (Type l)
-coprod [nam] = return $ TyCon l (UnQual l nam)
+coprod :: [QName l] -> Transform (Type l)
+coprod [nam] = return $ TyCon l nam
     where l = ann nam
 coprod (nam:ns) = do
     rest <- coprod ns
-    return (TyInfix l (TyCon l (UnQual l nam)) 
-                      (UnpromotedName l (UnQual l (Symbol l ":+:")))
-                      rest)
+    return (TyInfix l (TyCon l nam)
+                      (UnpromotedName l (Qual l (ModuleName l "Data.Comp") (Symbol l ":+:")))
+                       rest)
     where l = ann nam
 coprod _ = throwError "Trying to form coproduct of no arguments"
--}
--- TODO: Fix monadic function
-coprod :: [QName l] -> Type l
-coprod [nam] = TyCon l nam
-    where l = ann nam
-coprod (nam:ns) = 
-    (TyInfix l (TyCon l nam)
-               (UnpromotedName l (Qual l (ModuleName l "Data.Comp") (Symbol l ":+:")))
-                rest)
-    where l = ann nam
-          rest = coprod ns
-coprod _ = undefined
 
 -- | Build signature, map of categories to their pieces
 buildSig :: [Decl l] -> Except String Sig

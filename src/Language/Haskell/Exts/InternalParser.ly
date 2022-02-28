@@ -269,8 +269,9 @@ Reserved Ids
 >       'stock'         { Loc $$ KW_Stock }    -- for DerivingStrategies extension
 >       'anyclass'      { Loc $$ KW_Anyclass } -- for DerivingStrategies extension
 >       'via'           { Loc $$ KW_Via }      -- for DerivingStrategies extension
->       'piece'         { Loc $$ KW_Piece }    -- for Composable Types
->       'piececategory'  { Loc $$ KW_PieceCategory} -- for Composable Types
+>       'piece'         { Loc $$ KW_Piece }    -- for ComposableTypes
+>       'piececategory'  { Loc $$ KW_PieceCategory} -- for ComposableTypes
+>       'for'           {Loc $$ KW_For} -- for ComposableTypes
 
 Pragmas
 
@@ -710,6 +711,14 @@ Requires Composable Types extension
 >       | exp0b ',' vars '-:' truectype  {% do { v <- checkSigVar $1;
 >                                            let {(vs,ss,_) = $3 ; l = $1 <> $5 <** ($2 : reverse ss ++ [$4]) } ;
 >                                            return $ CompFunDef l (v : reverse vs) $5 } }
+
+>       | exp0b 'for' con optvaldefs
+>                {% do { 
+                    checkEnabled ComposableTypes ;
+>                   v <- checkSigVar $1 ;
+>                   let { (mis,ss,minf) = $4 ;
+>                         l = nIS $2 <++> $1 <> $3 <+?> minf <** ss };
+>                   return $ CompFunInst l v $3 mis }}
 
 >       | decl          { $1 }
 

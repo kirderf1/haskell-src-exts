@@ -223,9 +223,10 @@ data Token
 
 -- Composable types
         | KW_Piece
+        | KW_PieceCategory
+        | KW_For
         | ExtraArrow
         | MinusColon
-        | KW_PieceCategory
 
         | EOF
         deriving (Eq,Show)
@@ -320,7 +321,8 @@ reserved_ids = [
 
 -- Composable types
   ( "piece",   (KW_Piece,    Just (Any [ComposableTypes])) ), 
-  ( "piececategory",     (KW_PieceCategory,      Just (Any [ComposableTypes])) )
+  ( "piececategory",     (KW_PieceCategory,      Just (Any [ComposableTypes])) ),
+  ( "for",     (KW_For,     Just (Any [ComposableTypes])) )
 
  ]
 
@@ -1502,6 +1504,7 @@ showToken t = case t of
  
   KW_Piece      -> "piece"
   KW_PieceCategory -> "piececategory"
+  KW_For        -> "for"
   ExtraArrow    -> "==>"
   MinusColon    -> "-:"
 

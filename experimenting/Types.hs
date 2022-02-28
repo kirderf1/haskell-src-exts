@@ -55,6 +55,8 @@ instance TypeMap Decl where
             PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh <$> (mapType f `mapM` cds) <*> (mapType f `mapM` ders)
             PieceCatDecl l ca                -> return $ PieceCatDecl l ca
             CompFunDef  l ns t               -> CompFunDef l ns <$> (mapType f t)
+            CompFunInst l fn pn ids          -> CompFunInst l fn pn <$> ((mapType f `mapM`) `mapM` ids)
+            
 
 instance TypeMap PatternSynDirection where
     mapType _ Unidirectional                 = return Unidirectional

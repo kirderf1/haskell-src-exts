@@ -344,6 +344,7 @@ data Decl l
      | PieceCatDecl l (Name l)
      | PieceDecl      l (Name l) (Name l) [QualConDecl l] [Deriving l]
      | CompFunDef     l [Name l] (Type l)
+     | CompFunInst    l (Name l) (Name l) (Maybe [InstDecl l])
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
 data  PatternSynDirection l =
@@ -1316,6 +1317,7 @@ instance Annotated Decl where
         PieceCatDecl   l _              -> l
         PieceDecl      l _ _ _ _        -> l
         CompFunDef     l _ _            -> l
+        CompFunInst    l _ _ _          -> l
     amap f decl = case decl of
         TypeDecl     l dh t      -> TypeDecl    (f l) dh t
         TypeFamDecl  l dh mk mi  -> TypeFamDecl (f l) dh mk mi
@@ -1357,6 +1359,7 @@ instance Annotated Decl where
         PieceCatDecl l ca                -> PieceCatDecl (f l) ca
         PieceDecl    l ca dh cds ders    -> PieceDecl (f l) ca dh cds ders
         CompFunDef   l ns t              -> CompFunDef (f l) ns t
+        CompFunInst  l fn pn ins         -> CompFunInst (f l) fn pn ins
 
 instance Annotated Role where
     ann r = case r of

@@ -589,6 +589,13 @@ instance  Pretty (Decl l) where
         pretty (CompFunDef _ nameList qualType) =
                 mySep ((punctuate comma . map pretty $ nameList)
                       ++ [text "-:", pretty qualType])
+        
+        pretty (CompFunInst _ funcName pieceName Nothing) =
+                        mySep ( [pretty funcName, text "for", pretty pieceName, text "where" ])
+
+        pretty (CompFunInst _ funcName pieceName mInstDecls) = 
+                mySep ( [pretty funcName, text "for", pretty pieceName, text "where" ])
+                $$$ ppBody classIndent (fromMaybe [] ((ppDecls False) <$> mInstDecls ))
 
 instance Pretty (InstRule l) where
     pretty (IRule _ tvs mctxt qn)  =

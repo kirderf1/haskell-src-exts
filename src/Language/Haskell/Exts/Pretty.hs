@@ -582,6 +582,9 @@ instance  Pretty (Decl l) where
                   <+> (myVcat (zipWith (<+>) (equals : repeat (char '|'))
                                              (map pretty constrList))
                         $$$ ppIndent letIndent (map pretty derives))
+        
+        pretty (PieceCatDecl _ category) =
+                mySep ( [text "piececategory", pretty category])
 
         pretty (CompFunDef _ nameList qualType) =
                 mySep ((punctuate comma . map pretty $ nameList)

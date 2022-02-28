@@ -341,6 +341,7 @@ data Decl l
      -- ^ A role annotation
      | CompletePragma l [Name l] (Maybe (QName l))
      -- ^ A COMPLETE pragma
+     | PieceCatDecl l (Name l)
      | PieceDecl      l (Name l) (Name l) [QualConDecl l] [Deriving l]
      | CompFunDef     l [Name l] (Type l)
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
@@ -1312,6 +1313,7 @@ instance Annotated Decl where
         RoleAnnotDecl    l _ _          -> l
         PatSyn           l _ _ _        -> l
         CompletePragma l _ _            -> l
+        PieceCatDecl   l _              -> l
         PieceDecl      l _ _ _ _        -> l
         CompFunDef     l _ _            -> l
     amap f decl = case decl of
@@ -1352,6 +1354,7 @@ instance Annotated Decl where
         RoleAnnotDecl    l t rs          -> RoleAnnotDecl (f l) t rs
         PatSyn           l p r d         -> PatSyn (f l) p r d
         CompletePragma   l cs ty         -> CompletePragma (f l) cs ty
+        PieceCatDecl l ca                -> PieceCatDecl (f l) ca
         PieceDecl    l ca dh cds ders    -> PieceDecl (f l) ca dh cds ders
         CompFunDef   l ns t              -> CompFunDef (f l) ns t
 

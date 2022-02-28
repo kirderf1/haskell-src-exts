@@ -53,6 +53,7 @@ instance TypeMap Decl where
             RoleAnnotDecl    l t rs          -> return $ RoleAnnotDecl l t rs
             CompletePragma   l cs ty         -> return $ CompletePragma l cs ty
             PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh <$> (mapType f `mapM` cds) <*> (mapType f `mapM` ders)
+            PieceCatDecl l ca                -> return $ PieceCatDecl l ca
             CompFunDef  l ns t               -> CompFunDef l ns <$> (mapType f t)
 
 instance TypeMap PatternSynDirection where

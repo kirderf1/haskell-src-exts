@@ -270,6 +270,7 @@ Reserved Ids
 >       'anyclass'      { Loc $$ KW_Anyclass } -- for DerivingStrategies extension
 >       'via'           { Loc $$ KW_Via }      -- for DerivingStrategies extension
 >       'piece'         { Loc $$ KW_Piece }    -- for Composable Types
+>       'piececategory'  { Loc $$ KW_PieceCategory} -- for Composable Types
 
 Pragmas
 
@@ -698,6 +699,11 @@ Requires Composable Types extension
 >                      let { (qds,ss,minf) = $6;
 >                            l = nIS $1 <++> nIS $2 <++> nIS $4 <++> $3 <> $5 <+?> minf <+?> fmap ann (listToMaybe $7) <** ss};
 >                      return (PieceDecl l $3 $5 (reverse qds) (reverse $7)) } }
+
+>       | 'piececategory' con 
+>                {% do { checkEnabled ComposableTypes ;
+>                        let { l = nIS $1 <++> ann $2  } ;
+>                        return (PieceCatDecl l $2) } }
 
 >       | exp0b '-:' truectype           {% do { v <- checkSigVar $1;
 >                                            return $ CompFunDef ($1 <> $3 <** [$2]) [v] $3 } }

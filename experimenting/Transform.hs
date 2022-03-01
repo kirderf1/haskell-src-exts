@@ -15,14 +15,15 @@ import Control.Monad.Reader
 import Control.Monad.Except
 
 -- | Map of category names to pieces
-type Sig = Map String (Set String)
+type Sig = Map (QName ()) (Set String)
 
 -- | Transform monad containing signature of categories and handles error messages as Strings.
 type Transform = ReaderT Sig (Except String)
 
 transform :: Module l -> Except String (Module l)
 transform m@(Module _l _mhead _pragmas _imports decls) = do
-    sig <- buildSig decls
+    sigCat <- buildSigCat decls
+    sig    <- buildSigPiece decls sigCat
     runReaderT (transformModule m) sig 
 transform _xml = throwError "transform not defined for xml formats" 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
@@ -59,6 +60,7 @@ transformDecl (PieceDecl l category headName cons derives) =
         (functorDerive : derives)
         )
         : [deriveTHPiece headName])
+transformDecl (PieceCatDecl _ _) = return []
 transformDecl (CompFunDecl l names t) = concat <$> (declsForName l t `mapM` names)
   where
     declsForName :: l -> Type l -> Name l -> Transform [Decl l]
@@ -76,7 +78,7 @@ transformType :: Type l -> Transform (Type l)
 transformType (TyComp l category types) = do
     -- check if piece constructors are in category
     cats <- ask
-    cat <- lift $ catName category
+    let cat = fmap (const ()) category
     case Map.lookup cat cats of
         Nothing -> throwError "transformType: Trying to form type of unknown category"
         Just pieces -> do 
@@ -94,17 +96,19 @@ transformType t = return t
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 
     parameter instead of the name of the category it belongs to.
 -}
-parametConstructor :: Name l -> Name l -> QualConDecl l -> QualConDecl l
+parametConstructor :: Name l -> QName l -> QualConDecl l -> QualConDecl l
 parametConstructor parname category (QualConDecl l0 v c (ConDecl l1 cname types)) = 
     QualConDecl l0 v c (ConDecl l1 cname (map (parametType parname) types))
     where 
         -- TODO: Could there be other ways to form this construct?
-        parametType pname (TyCon tl (UnQual t2 recu)) = 
+        parametType pname (TyCon l2 recu) = 
             if recu `match` category
-                then TyCon tl (UnQual t2 pname)
-                else TyCon tl (UnQual t2 recu)
+                then TyCon l2 (UnQual l2 pname)
+                else TyCon l2 recu
         parametType _ t = t
-        match (Ident _ n1) (Ident _ n2) = n1 == n2
+        match (Qual _ (ModuleName _ moduleName1) (Ident _ n1)) (Qual _ (ModuleName _ moduleName2) (Ident _ n2)) = 
+            moduleName1 == moduleName2 && n1 == n2
+        match (UnQual _ (Ident _ n1)) (UnQual _ (Ident _ n2)) = n1 == n2
         match _ _ = False
 parametConstructor _ _ c = c 
 
@@ -207,22 +211,34 @@ coprod (nam:ns) = do
     where l = ann nam
 coprod _ = throwError "Trying to form coproduct of no arguments"
 
+
+buildSigCat :: [Decl l] -> Except String Sig
+buildSigCat [] = return Map.empty
+buildSigCat ((PieceCatDecl _l category):decls) = do
+    sig <- buildSigCat decls
+    let category' = (UnQual () (fmap (const ()) category))
+
+    case Map.lookup category' sig of
+         Just _ -> throwError $ "buildSigCat: category " ++ show category' ++ " already declared"
+         Nothing -> return $ Map.insert category' Set.empty sig
+buildSigCat (_:decls) = buildSigCat decls
+    
 -- | Build signature, map of categories to their pieces
-buildSig :: [Decl l] -> Except String Sig
-buildSig [] = return Map.empty 
-buildSig ((PieceDecl _l category headName _cons _derives):decls) = do
-    sig <- buildSig decls 
-    idCat <- nameID category
+buildSigPiece :: [Decl l] -> Sig -> Except String Sig
+buildSigPiece [] sig = return sig
+buildSigPiece  ((PieceDecl _l category headName _cons _derives):decls) sig = do
+    sig' <- buildSigPiece decls sig
+    let category' = fmap (const ()) category
     idHead <- nameID headName
-    case Map.lookup idCat sig of
-        Just oldCons -> return $ Map.insert idCat (Set.insert idHead oldCons) sig
-        Nothing -> return $ Map.insert idCat (Set.fromList [idHead]) sig
+    case Map.lookup category' sig' of
+        Just oldCons -> return $ Map.insert category' (Set.insert idHead oldCons) sig'
+        Nothing -> throwError $ "buildSigPiece: category " ++ show category' ++ " not declared."
     where
         nameID :: Name l -> Except String String
         nameID (Ident _ s) = return s
-        nameID _ = throwError "buildSig: unexpected type of name"
+        nameID _ = throwError "buildSigPiece: unexpected type of name"
     
-buildSig (_:decls) = buildSig decls
+buildSigPiece (_:decls) sig = buildSigPiece decls sig
 
 -- | Modify a list of import declarations to add the ones needed for compdata
 modifyImports :: l -> [ImportDecl l] -> [ImportDecl l]
@@ -281,18 +297,13 @@ transformFunType cname replType t = do
 
 maybeConvType :: Sig -> Type l -> Type l -> Maybe (Type l)
 maybeConvType sig replType (TyCon l qname) = do
-    nam <- stringFromQName qname
-    if Map.member nam sig
+    if Map.member (const () <$> qname) sig
       then Just replType
       else Nothing
 maybeConvType _ _ _ = Nothing
 
 termType :: l -> Type l
 termType l = TyApp l (TyCon l (Qual l (ModuleName l "Data.Comp") (Ident l "Term"))) (TyVar l (Ident l "g"))
-
-stringFromQName :: QName l -> Maybe String
-stringFromQName (UnQual _ (Ident _ nam)) = Just nam
-stringFromQName _ = Nothing
 
 functionsig :: l -> Name l -> Name l -> Type l -> Transform (Decl l)
 functionsig l nam className t = do

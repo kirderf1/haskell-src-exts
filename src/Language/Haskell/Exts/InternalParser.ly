@@ -707,10 +707,10 @@ Requires Composable Types extension
 >                        return (PieceCatDecl l $2) } }
 
 >       | exp0b '-:' truectype           {% do { v <- checkSigVar $1;
->                                            return $ CompFunDef ($1 <> $3 <** [$2]) [v] $3 } }
+>                                            return $ CompFunDecl ($1 <> $3 <** [$2]) [v] $3 } }
 >       | exp0b ',' vars '-:' truectype  {% do { v <- checkSigVar $1;
 >                                            let {(vs,ss,_) = $3 ; l = $1 <> $5 <** ($2 : reverse ss ++ [$4]) } ;
->                                            return $ CompFunDef l (v : reverse vs) $5 } }
+>                                            return $ CompFunDecl l (v : reverse vs) $5 } }
 
 >       | exp0b 'for' con optvaldefs
 >                {% do { 

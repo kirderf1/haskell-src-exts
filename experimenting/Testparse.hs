@@ -31,14 +31,15 @@ main = do
                  showModule ast
                  putStrLn "Pretty-print before:"
                  putStrLn $ prettyPrint ast
-         else case runExcept (transform (const () <$> ast)) of
-                Left msg -> putStrLn msg
-                Right ast' -> if debug
-                                 then do putStrLn "AST structure after:"
-                                         showModule ast'
-                                         putStrLn "Pretty-print after:"
-                                         putStrLn $ prettyPrint ast'
-                                 else writeFile "experimenting/Output.hs" $ prettyPrint ast'
+         else return ()
+      case runExcept (transform (const () <$> ast)) of
+         Left msg -> putStrLn msg
+         Right ast' -> if debug
+                          then do putStrLn "AST structure after:"
+                                  showModule ast'
+                                  putStrLn "Pretty-print after:"
+                                  putStrLn $ prettyPrint ast'
+                          else writeFile "experimenting/Output.hs" $ prettyPrint ast'
 
 showModule :: Module l -> IO()
 showModule = putStrLn . show . removeSrcSpanInfo

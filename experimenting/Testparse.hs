@@ -39,7 +39,7 @@ main = do
                                   showModule ast'
                                   putStrLn "Pretty-print after:"
                                   putStrLn $ prettyPrint ast'
-                          else writeFile "experimenting/Output.hs" $ prettyPrint ast'
+                          else putStrLn $ prettyPrint ast'
 
 showModule :: Module l -> IO()
 showModule = putStrLn . show . removeSrcSpanInfo

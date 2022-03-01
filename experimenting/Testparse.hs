@@ -19,17 +19,17 @@ main = do
       showModule ast
       putStrLn "Pretty-print before:"
       putStrLn $ prettyPrint ast
-      case runExcept (transform ast) of
+      case runExcept (transform (const () <$> ast)) of
            Left msg -> putStrLn msg
            Right ast' -> do putStrLn "AST structure after:"
                             showModule ast'
                             putStrLn "Pretty-print after:"
                             putStrLn $ prettyPrint ast'
 
-showModule :: Module SrcSpanInfo -> IO()
+showModule :: Module l -> IO()
 showModule = putStrLn . show . removeSrcSpanInfo
 
-removeSrcSpanInfo :: Module SrcSpanInfo -> Module ()
+removeSrcSpanInfo :: Module l -> Module ()
 removeSrcSpanInfo = fmap $ const ()
 
   --     data SrcSpanInfo = SrcSpanInfo

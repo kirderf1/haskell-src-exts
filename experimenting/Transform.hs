@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Transform where
 
 import Language.Haskell.Exts
@@ -20,8 +21,8 @@ type Sig = Map (QName ()) (Set String)
 -- | Transform monad containing signature of categories and handles error messages as Strings.
 type Transform = ReaderT Sig (Except String)
 
-transform :: Module l -> Except String (Module l)
-transform m@(Module _l _mhead _pragmas _imports decls) = do
+transform :: Module () -> Except String (Module ())
+transform m@(Module _ _mhead _pragmas _imports decls) = do
     sigCat <- buildSigCat decls
     sig    <- buildSigPiece decls sigCat
     runReaderT (transformModule m) sig 
@@ -29,53 +30,50 @@ transform _xml = throwError "transform not defined for xml formats"
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
 
 -- | Transform a module to remove syntax for composable types if the pragma is present
-transformModule :: Module l -> Transform (Module l)
-transformModule m@(Module l mhead pragmas imports decls) =
+transformModule :: Module () -> Transform (Module ())
+transformModule m@(Module _ mhead pragmas imports decls) =
     if pragmasContain "ComposableTypes" pragmas
         then do
-            let pragmas' = modifyPragmas l pragmas
-                imports' = modifyImports l imports
+            let pragmas' = modifyPragmas pragmas
+                imports' = modifyImports imports
             
             decls' <- liftM concat (mapM transformDecl decls)
-            mapType transformType (Module l mhead pragmas' imports' decls')
+            mapType transformType (Module () mhead pragmas' imports' decls')
         else return m
 transformModule _xml = throwError "transformModule not defined for xml formats" 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
 
 -- | Transform a top level declaration to one or more new declarations
-transformDecl :: Decl l -> Transform [Decl l]
-transformDecl (PieceDecl l category headName cons derives) = 
-    let nameL = ann headName
-        parname = getParName nameL
+transformDecl :: Decl () -> Transform [Decl ()]
+transformDecl (PieceDecl _ (category :: QName ()) headName cons derives) = 
+    let parname = getParName
         cspar = map (parametConstructor parname category) cons
-        aders = head $ map ann derives
-        functorDerive = deriveFunctor aders
         in
     return ((DataDecl 
-        l 
-        (DataType l)
+        ()
+        (DataType ())
         Nothing 
-        (DHApp nameL (DHead nameL headName) (UnkindedVar nameL parname))
+        (DHApp () (DHead () headName) (UnkindedVar () parname))
         cspar
-        (functorDerive : derives)
+        (deriveFunctor : derives)
         )
         : [deriveTHPiece headName])
 transformDecl (PieceCatDecl _ _) = return []
-transformDecl (CompFunDecl l names t) = concat <$> (declsForName l t `mapM` names)
+transformDecl (CompFunDecl () names t) = concat <$> (declsForName t `mapM` names)
   where
-    declsForName :: l -> Type l -> Name l -> Transform [Decl l]
-    declsForName l t nam = do
+    declsForName :: Type () -> Name () -> Transform [Decl ()]
+    declsForName t nam = do
         className <- toClassName nam
         funcName <- toFuncName nam
-        classDecl <- functionClass l className funcName t
-        sigDecl <- functionsig l nam className t
-        return [classDecl, sigDecl, functionBind l nam funcName, liftSum l className]
+        classDecl <- functionClass className funcName t
+        sigDecl <- functionsig nam className t
+        return [classDecl, sigDecl, functionBind nam funcName, liftSum className]
 
 transformDecl d = return [d]
 
 -- | Transform a type
-transformType :: Type l -> Transform (Type l)
-transformType (TyComp l category types) = do
+transformType :: Type () -> Transform (Type ())
+transformType (TyComp _ category types) = do
     -- check if piece constructors are in category
     cats <- ask
     let cat = fmap (const ()) category
@@ -85,10 +83,10 @@ transformType (TyComp l category types) = do
             typeNames <- mapM (lift . catName) types
             lift $ checkInCategory pieces typeNames
             coprodtype <- coprod types
-            return $ TyApp l (TyCon l (UnQual l (Ident l "Term"))) (TyParen l coprodtype)
-      where catName :: QName l -> Except String String
-            catName (Qual _l _moduleName (Ident _l1 c)) = return c
-            catName (UnQual _l (Ident _l1 c)) = return c
+            return $ TyApp () (TyCon () (UnQual () (Ident () "Term"))) (TyParen () coprodtype)
+      where catName :: QName () -> Except String String
+            catName (Qual _ _moduleName (Ident _ c)) = return c
+            catName (UnQual _ (Ident _ c)) = return c
             catName _ = throwError "transformType: unexpected type of category name"
             -- TODO: special QName?
 transformType t = return t
@@ -96,20 +94,16 @@ transformType t = return t
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 
     parameter instead of the name of the category it belongs to.
 -}
-parametConstructor :: Name l -> QName l -> QualConDecl l -> QualConDecl l
-parametConstructor parname category (QualConDecl l0 v c (ConDecl l1 cname types)) = 
-    QualConDecl l0 v c (ConDecl l1 cname (map (parametType parname) types))
+parametConstructor :: Name () -> QName () -> QualConDecl () -> QualConDecl ()
+parametConstructor parname category (QualConDecl _ v c (ConDecl _ cname types)) = 
+    QualConDecl () v c (ConDecl () cname (map (parametType parname) types))
     where 
         -- TODO: Could there be other ways to form this construct?
-        parametType pname (TyCon l2 recu) = 
-            if recu `match` category
-                then TyCon l2 (UnQual l2 pname)
-                else TyCon l2 recu
+        parametType pname (TyCon _ recu) = 
+            if recu == category
+                then TyCon () (UnQual () pname)
+                else TyCon () recu
         parametType _ t = t
-        match (Qual _ (ModuleName _ moduleName1) (Ident _ n1)) (Qual _ (ModuleName _ moduleName2) (Ident _ n2)) = 
-            moduleName1 == moduleName2 && n1 == n2
-        match (UnQual _ (Ident _ n1)) (UnQual _ (Ident _ n2)) = n1 == n2
-        match _ _ = False
 parametConstructor _ _ c = c 
 
 
@@ -120,40 +114,38 @@ parametConstructor _ _ c = c
 -- Use DerivingStrategies to allow this
 
 -- | Create a Deriving functor for a given data type
-deriveFunctor :: l -> Deriving l 
-deriveFunctor l =
-  Deriving l Nothing
-    [IRule l Nothing 
+deriveFunctor :: Deriving ()
+deriveFunctor =
+  Deriving () Nothing
+    [IRule () Nothing 
       Nothing
-      (IHCon l (UnQual l (Ident l "Functor")))]
+      (IHCon () (UnQual () (Ident () "Functor")))]
 
 
 
 -- | Get a name for the parametrized variable.            
 -- TODO: Figure out how to handle unique names for parametrize variables
-getParName :: l -> Name l 
-getParName info = Ident info "a"
+getParName :: Name ()
+getParName = Ident () "a"
 
 
 -- | Template Haskell derive for a piece
-deriveTHPiece :: Name l -> Decl l 
+deriveTHPiece :: Name () -> Decl () 
 deriveTHPiece pieceName = deriveTH pieceName ["makeTraversable", "makeFoldable", "makeEqF",
                                   "makeShowF", "smartConstructors", "smartAConstructors"]                                
 
 -- | Template Haskell derive for a certain data type from a list of things to derive
-deriveTH :: Name l -> [String] -> Decl l 
-deriveTH targetName list = SpliceDecl l 
-        (SpliceExp l 
-            (ParenSplice l 
-                (App l 
-                    (App l 
-                        (Var l
-                            (UnQual l 
-                                (Ident l "Data.Comp.Derive.derive")
-                            )
+deriveTH :: Name () -> [String] -> Decl () 
+deriveTH targetName list = SpliceDecl () 
+        (SpliceExp ()
+            (ParenSplice ()
+                (App ()
+                    (App ()
+                        (Var ()
+                            (Qual () (ModuleName () "Data.Comp.Derive") (Ident () "derive"))
                         ) 
-                        (List l 
-                            (map (deriveTHListElem l) list)
+                        (List ()
+                            (map deriveTHListElem list)
                         )
                     ) 
                     (List l 
@@ -170,8 +162,8 @@ deriveTH targetName list = SpliceDecl l
 
 
 -- | Element for a thing to derive with Template Haskell
-deriveTHListElem :: l -> String -> Exp l
-deriveTHListElem l nam = Var l (UnQual l (Ident l ("Data.Comp.Derive." ++ nam)))
+deriveTHListElem :: String -> Exp ()
+deriveTHListElem nam = Var () (Qual () (ModuleName () "Data.Comp.Derive") (Ident () nam))
 
 
 -- TODO: derive liftSum for the class for a function/algebra
@@ -179,40 +171,38 @@ deriveTHListElem l nam = Var l (UnQual l (Ident l ("Data.Comp.Derive." ++ nam)))
 
 -- TODO: possibly more pragmas?
 -- | Modify a list of pragmas to remove ComposableTypes and add the ones needed for compdata
-modifyPragmas :: l -> [ModulePragma l] -> [ModulePragma l]
-modifyPragmas l ps =  concatMap (addPragma l (removeCompTypes ps)) 
+modifyPragmas :: [ModulePragma ()] -> [ModulePragma ()]
+modifyPragmas ps =  concatMap (addPragma (removeCompTypes ps)) 
                                 ["DeriveFunctor","TemplateHaskell","TypeOperators"
                                 ,"FlexibleContexts"] 
     where  
-        addPragma :: l -> [ModulePragma l] -> String -> [ModulePragma l]
-        addPragma l1 prs nam = if pragmasContain nam prs 
+        addPragma :: [ModulePragma ()] -> String -> [ModulePragma ()]
+        addPragma prs nam = if pragmasContain nam prs 
                                  then prs
-                                 else (LanguagePragma l1 [Ident l1 nam]):prs
+                                 else (LanguagePragma () [Ident () nam]):prs
         removeCompTypes = filter (not . matchPragma "ComposableTypes")
 
 -- | Check if the list of pragmas contain a certain one
-pragmasContain :: String -> [ModulePragma l] -> Bool
+pragmasContain :: String -> [ModulePragma ()] -> Bool
 pragmasContain nam = any (matchPragma nam)
         
 -- | Check if a pragma match the given String
-matchPragma :: String -> ModulePragma l -> Bool
+matchPragma :: String -> ModulePragma () -> Bool
 matchPragma s (LanguagePragma _ [Ident _ nam]) = nam == s
 matchPragma _ _ = False
 
 -- | Form coproduct type from a list of pieces
-coprod :: [QName l] -> Transform (Type l)
-coprod [nam] = return $ TyCon l nam
-    where l = ann nam
+coprod :: [QName ()] -> Transform (Type ())
+coprod [nam] = return $ TyCon () nam
 coprod (nam:ns) = do
     rest <- coprod ns
-    return (TyInfix l (TyCon l nam)
-                      (UnpromotedName l (Qual l (ModuleName l "Data.Comp") (Symbol l ":+:")))
+    return (TyInfix () (TyCon () nam)
+                      (UnpromotedName () (Qual () (ModuleName () "Data.Comp") (Symbol () ":+:")))
                        rest)
-    where l = ann nam
 coprod _ = throwError "Trying to form coproduct of no arguments"
 
 
-buildSigCat :: [Decl l] -> Except String Sig
+buildSigCat :: [Decl ()] -> Except String Sig
 buildSigCat [] = return Map.empty
 buildSigCat ((PieceCatDecl _l category):decls) = do
     sig <- buildSigCat decls
@@ -224,9 +214,9 @@ buildSigCat ((PieceCatDecl _l category):decls) = do
 buildSigCat (_:decls) = buildSigCat decls
     
 -- | Build signature, map of categories to their pieces
-buildSigPiece :: [Decl l] -> Sig -> Except String Sig
+buildSigPiece :: [Decl ()] -> Sig -> Except String Sig
 buildSigPiece [] sig = return sig
-buildSigPiece  ((PieceDecl _l category headName _cons _derives):decls) sig = do
+buildSigPiece  ((PieceDecl _ (category :: QName ()) headName _cons _derives):decls) sig = do
     sig' <- buildSigPiece decls sig
     let category' = fmap (const ()) category
     idHead <- nameID headName
@@ -234,24 +224,24 @@ buildSigPiece  ((PieceDecl _l category headName _cons _derives):decls) sig = do
         Just oldCons -> return $ Map.insert category' (Set.insert idHead oldCons) sig'
         Nothing -> throwError $ "buildSigPiece: category " ++ show category' ++ " not declared."
     where
-        nameID :: Name l -> Except String String
+        nameID :: Name () -> Except String String
         nameID (Ident _ s) = return s
         nameID _ = throwError "buildSigPiece: unexpected type of name"
     
 buildSigPiece (_:decls) sig = buildSigPiece decls sig
 
 -- | Modify a list of import declarations to add the ones needed for compdata
-modifyImports :: l -> [ImportDecl l] -> [ImportDecl l]
-modifyImports l is =  concatMap (addImport l is)
+modifyImports :: [ImportDecl ()] -> [ImportDecl ()]
+modifyImports is =  concatMap (addImport is)
                                 ["Data.Comp", "Data.Comp.Derive",
                                  "Data.Comp.Show ()", "Data.Comp.Equality ()"] 
     where  
-        addImport :: l -> [ImportDecl l] -> String -> [ImportDecl l]
-        addImport l1 is1 nam = if importsContain nam is1 
+        addImport :: [ImportDecl ()] -> String -> [ImportDecl ()]
+        addImport is1 nam = if importsContain nam is1 
                                  then is1
                                  else (ImportDecl
-                                 { importAnn = l1                     -- ^ annotation, used by parser for position of the @import@ keyword.
-                                 , importModule = ModuleName l1 nam   -- ^ name of the module imported.
+                                 { importAnn = ()                     -- ^ annotation, used by parser for position of the @import@ keyword.
+                                 , importModule = ModuleName () nam   -- ^ name of the module imported.
                                  , importQualified = True            -- ^ imported @qualified@?
                                  , importSrc = False                  -- ^ imported with @{-\# SOURCE \#-}@?
                                  , importSafe = False                 -- ^ Import @safe@?
@@ -262,59 +252,58 @@ modifyImports l is =  concatMap (addImport l is)
 
 
 -- | Check if the list of import declarations contain a certain one
-importsContain :: String -> [ImportDecl l] -> Bool
+importsContain :: String -> [ImportDecl ()] -> Bool
 importsContain nam = any (matchImport nam)
         
 -- | Check if a import declaration match the given String
-matchImport :: String -> ImportDecl l -> Bool
+matchImport :: String -> ImportDecl () -> Bool
 matchImport s (ImportDecl {importModule = ModuleName _ nam}) = nam == s
 
-toFuncName :: Name l -> Transform (Name l)
-toFuncName (Ident l nam) = return $ Ident l (nam ++ "'")
+toFuncName :: Name () -> Transform (Name ())
+toFuncName (Ident _ nam) = return $ Ident () (nam ++ "'")
 toFuncName _             = throwError "Expected ident name in CompFunDecl, but it was not that."
-toClassName :: Name l -> Transform (Name l)
-toClassName (Ident l (c:nam)) = return $ Ident l (toUpper c : nam)
+toClassName :: Name () -> Transform (Name ())
+toClassName (Ident () (c:nam)) = return $ Ident () (toUpper c : nam)
 toClassName _             = throwError "Expected ident name in CompFunDecl, but it was not that."
 
-functionClass :: l -> Name l -> Name l -> Type l -> Transform (Decl l)
-functionClass l className functionName t = do
-    funType <- transformFunType className (TyApp l (TyVar l (Ident l "f")) (TyParen l (termType l))) t
-    return $ ClassDecl l Nothing
-        (DHApp l (DHead l className) (UnkindedVar l (Ident l "f"))) []
-        (Just [classFunctionDecl l functionName funType])
+functionClass :: Name () -> Name () -> Type () -> Transform (Decl ())
+functionClass className functionName t = do
+    funType <- transformFunType className (TyApp () (TyVar () (Ident () "f")) (TyParen () termType)) t
+    return $ ClassDecl () Nothing
+        (DHApp () (DHead () className) (UnkindedVar () (Ident () "f"))) []
+        (Just [classFunctionDecl functionName funType])
 
-classFunctionDecl :: l -> Name l -> Type l -> ClassDecl l
-classFunctionDecl l functionName t = ClsDecl l (TypeSig l [functionName] t)
+classFunctionDecl :: Name () -> Type () -> ClassDecl ()
+classFunctionDecl functionName t = ClsDecl () (TypeSig () [functionName] t)
 
-transformFunType :: Name l -> Type l -> Type l -> Transform (Type l)
+transformFunType :: Name () -> Type () -> Type () -> Transform (Type ())
 transformFunType cname replType t = do
     sig <- ask
     resT <- mapType (convType sig) t
-    return (TyForall l Nothing (Just (CxSingle l (ParenA l (TypeA l (TyApp l (TyCon l (UnQual l cname)) (TyVar l (Ident l "g"))))))) resT)
+    return (TyForall () Nothing (Just (CxSingle () (ParenA () (TypeA () (TyApp () (TyCon () (UnQual () cname)) (TyVar () (Ident () "g"))))))) resT)
   where
     convType sig t = return (fromMaybe t (maybeConvType sig replType t))
-    l = ann t
 
-maybeConvType :: Sig -> Type l -> Type l -> Maybe (Type l)
-maybeConvType sig replType (TyCon l qname) = do
+maybeConvType :: Sig -> Type () -> Type () -> Maybe (Type ())
+maybeConvType sig replType (TyCon () qname) = do
     if Map.member (const () <$> qname) sig
       then Just replType
       else Nothing
 maybeConvType _ _ _ = Nothing
 
-termType :: l -> Type l
-termType l = TyApp l (TyCon l (Qual l (ModuleName l "Data.Comp") (Ident l "Term"))) (TyVar l (Ident l "g"))
+termType :: Type ()
+termType = TyApp () (TyCon () (Qual () (ModuleName () "Data.Comp") (Ident () "Term"))) (TyVar () (Ident () "g"))
 
-functionsig :: l -> Name l -> Name l -> Type l -> Transform (Decl l)
-functionsig l nam className t = do
-    funType <- transformFunType className (termType l) t
-    return $ TypeSig l [nam] funType
+functionsig :: Name () -> Name () -> Type () -> Transform (Decl ())
+functionsig nam className t = do
+    funType <- transformFunType className termType t
+    return $ TypeSig () [nam] funType
 
-functionBind :: l -> Name l -> Name l -> Decl l
-functionBind l nam funcName = PatBind l (PVar l nam) (UnGuardedRhs l (InfixApp l (Var l (UnQual l funcName)) (QVarOp l (UnQual l (Symbol l "."))) (Var l (UnQual l (Ident l "unTerm"))))) Nothing
+functionBind :: Name () -> Name () -> Decl ()
+functionBind nam funcName = PatBind () (PVar () nam) (UnGuardedRhs () (InfixApp () (Var () (UnQual () funcName)) (QVarOp () (UnQual () (Symbol () "."))) (Var () (UnQual () (Ident () "unTerm"))))) Nothing
 
-liftSum :: l -> Name l -> Decl l
-liftSum l className = SpliceDecl l (SpliceExp l (ParenSplice l (App l (App l (Var l (UnQual l (Ident l "derive"))) (List l [Var l (UnQual l (Ident l "liftSum"))])) (List l [TypQuote l (UnQual l className)]))))
+liftSum :: Name () -> Decl ()
+liftSum className = SpliceDecl () (SpliceExp () (ParenSplice () (App () (App () (Var () (UnQual () (Ident () "derive"))) (List () [Var () (UnQual () (Ident () "liftSum"))])) (List () [TypQuote () (UnQual () className)]))))
 
 -- | Check if all parts of a composition type are in the category
 checkInCategory :: Set String -> [String] -> Except String ()

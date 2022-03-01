@@ -931,7 +931,7 @@ instance ExactP Decl where
     PieceCatDecl _l ca -> do
          printString "piececategory"
          exactPC ca
-    CompFunDef l ns t -> do
+    CompFunDecl l ns t -> do
         let pts = srcInfoPoints l
         printInterleaved' (zip pts (replicate (length pts - 1) "," ++ ["-:"])) ns
         exactPC t

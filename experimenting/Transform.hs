@@ -8,6 +8,7 @@ import           Data.Map   (Map)
 import qualified Data.Map as Map
 import           Data.Set   (Set)
 import qualified Data.Set as Set
+import           Data.Maybe (fromMaybe)
 
 import Control.Monad.Reader
 import Control.Monad.Except
@@ -206,7 +207,7 @@ buildSig ((PieceDecl _l category headName _cons _derives):decls) = do
     case Map.lookup idCat sig of
         Just oldCons -> return $ Map.insert idCat (Set.insert idHead oldCons) sig
         Nothing -> return $ Map.insert idCat (Set.fromList [idHead]) sig
-    where 
+    where
         nameID :: Name l -> Except String String
         nameID (Ident _ s) = return s
         nameID _ = throwError "buildSig: unexpected type of name"
@@ -241,6 +242,50 @@ importsContain nam = any (matchImport nam)
 -- | Check if a import declaration match the given String
 matchImport :: String -> ImportDecl l -> Bool
 matchImport s (ImportDecl {importModule = ModuleName _ nam}) = nam == s
+
+
+mapFuncDecl :: Decl l -> Transform [Decl l]
+mapFuncDecl (CompFunDecl l names t) = concat <$> (declsForName l t `mapM` names)
+  where
+    declsForName :: l -> Type l -> Name l -> Transform [Decl l]
+    declsForName l t nam = return [functionClass l (toClassName nam) (toFuncName nam) t]
+mapFuncDecl decl = return [decl]
+
+toFuncName :: Name l -> Transform (Name l)
+toFuncName (Ident l nam) = return $ nam ++ "'"
+toFuncName _             = throwError "Expected ident name in CompFunDecl, but it was not that."
+toClassName :: Name l -> Transform (Name l)
+toClassName (Ident l (c:nam)) = return $ toUpper c : nam
+toClassName _             = throwError "Expected ident name in CompFunDecl, but it was not that."
+
+functionClass :: l -> Name l -> Name l -> Type l -> Decl l
+functionClass l className functionName t = ClassDecl l Nothing
+        (DHApp l (DHead l className) (UnkindedVar l (Ident l "f"))) []
+        (Just [classFunctionDecl l functionName (transformFunType className t)])
+
+classFunctionDecl :: l -> Name l -> Type l -> ClassDecl l
+classFunctionDecl l functionName t = ClsDecl l (TypeSig l [functionName] t)
+
+transformFunType :: Name l -> Type l -> Transform (Type l)
+transformFunType cname t = do
+    sig <- ask
+    resT <- mapType (convType sig) t
+    return (TyForall l Nothing (Just (CxSingle l (ParenA l (TypeA l (TyApp l (TyCon l (UnQual l cname)) (TyVar l (Ident l "g"))))))) resT)
+  where
+    convType sig t = return (fromMaybe t (maybeConvType sig t))
+    l = ann t
+
+maybeConvType :: Sig -> Type l -> Maybe (Type l)
+maybeConvType sig (TyCon l qname) = do
+    nam <- stringFromQName qname
+    if Map.member nam sig
+      then Just (TyApp l (TyVar l (Ident l "f")) (TyVar l (Ident l "g")))
+      else Nothing
+maybeConvType _ _ = Nothing
+
+stringFromQName :: QName l -> Maybe String
+stringFromQName (UnQual _ (Ident _ nam)) = Just nam
+stringFromQName _ = Nothing
 
 -- | Check if all parts of a composition type are in the category
 checkInCategory :: Set String -> [String] -> Except String ()

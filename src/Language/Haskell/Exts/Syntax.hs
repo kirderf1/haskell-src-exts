@@ -342,7 +342,7 @@ data Decl l
      | CompletePragma l [Name l] (Maybe (QName l))
      -- ^ A COMPLETE pragma
      | PieceCatDecl l (Name l)
-     | PieceDecl      l (Name l) (Name l) [QualConDecl l] [Deriving l]
+     | PieceDecl      l (QName l) (Name l) [QualConDecl l] [Deriving l]
      | CompFunDef     l [Name l] (Type l)
      | CompFunInst    l (Name l) (Name l) (Maybe [InstDecl l])
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)

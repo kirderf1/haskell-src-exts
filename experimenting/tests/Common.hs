@@ -1,6 +1,6 @@
 {-# LANGUAGE ComposableTypes #-}
 
-module Examples.Common where
+module Main where
 
 piececategory Expr
 
@@ -13,5 +13,11 @@ type Sig = Expr ==> (Op, Value)
 
 eval -: Expr -> Int
 
+{-
 eval for Value where 
     eval (Const i) = i
+    -}
+
+    
+main :: IO ()
+main = putStrLn "Det funkar!"

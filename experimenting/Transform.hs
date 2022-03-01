@@ -303,10 +303,10 @@ functionsig nam className t = do
     return $ TypeSig () [nam] funType
 
 functionBind :: Name () -> Name () -> Decl ()
-functionBind nam funcName = PatBind () (PVar () nam) (UnGuardedRhs () (InfixApp () (Var () (UnQual () funcName)) (QVarOp () (UnQual () (Symbol () "."))) (Var () (UnQual () (Ident () "unTerm"))))) Nothing
+functionBind nam funcName = PatBind () (PVar () nam) (UnGuardedRhs () (InfixApp () (Var () (UnQual () funcName)) (QVarOp () (UnQual () (Symbol () "."))) (Var () (Qual () (ModuleName () "Data.Comp") (Ident () "unTerm"))))) Nothing
 
 liftSum :: Name () -> Decl ()
-liftSum className = SpliceDecl () (SpliceExp () (ParenSplice () (App () (App () (Var () (UnQual () (Ident () "derive"))) (List () [Var () (UnQual () (Ident () "liftSum"))])) (List () [TypQuote () (UnQual () className)]))))
+liftSum className = SpliceDecl () (SpliceExp () (ParenSplice () (App () (App () (deriveTHListElem "derive") (List () [deriveTHListElem "liftSum"])) (List () [TypQuote () (UnQual () className)]))))
 
 -- | Check if all parts of a composition type are in the category
 checkInCategory :: Set String -> [String] -> Except String ()

@@ -83,7 +83,7 @@ transformType (TyComp _ category types) = do
             typeNames <- mapM (lift . catName) types
             lift $ checkInCategory pieces typeNames
             coprodtype <- coprod types
-            return $ TyApp () (TyCon () (UnQual () (Ident () "Term"))) (TyParen () coprodtype)
+            return $ TyApp () termName (TyParen () coprodtype)
       where catName :: QName () -> Except String String
             catName (Qual _ _moduleName (Ident _ c)) = return c
             catName (UnQual _ (Ident _ c)) = return c
@@ -292,7 +292,10 @@ maybeConvType sig replType (TyCon () qname) = do
 maybeConvType _ _ _ = Nothing
 
 termType :: Type ()
-termType = TyApp () (TyCon () (Qual () (ModuleName () "Data.Comp") (Ident () "Term"))) (TyVar () (Ident () "g"))
+termType = TyApp () termName (TyVar () (Ident () "g"))
+
+termName :: Type ()
+termName = TyCon () (Qual () (ModuleName () "Data.Comp") (Ident () "Term"))
 
 functionsig :: Name () -> Name () -> Type () -> Transform (Decl ())
 functionsig nam className t = do

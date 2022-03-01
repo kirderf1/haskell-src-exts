@@ -222,7 +222,7 @@ buildSigPiece  ((PieceDecl _l category headName _cons _derives):decls) sig = do
     idHead <- nameID headName
     case Map.lookup category' sig' of
         Just oldCons -> return $ Map.insert category' (Set.insert idHead oldCons) sig'
-        Nothing -> return $ Map.insert category' (Set.fromList [idHead]) sig'
+        Nothing -> throwError $ "buildSigPiece: category " ++ show category' ++ " not declared."
     where 
         nameID :: Name l -> Except String String
         nameID (Ident _ s) = return s

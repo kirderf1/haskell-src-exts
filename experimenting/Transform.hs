@@ -166,9 +166,6 @@ deriveTHListElem :: String -> Exp ()
 deriveTHListElem nam = Var () (Qual () (ModuleName () "Data.Comp.Derive") (Ident () nam))
 
 
--- TODO: derive liftSum for the class for a function/algebra
-
-
 -- TODO: possibly more pragmas?
 -- | Modify a list of pragmas to remove ComposableTypes and add the ones needed for compdata
 modifyPragmas :: [ModulePragma ()] -> [ModulePragma ()]
@@ -201,7 +198,7 @@ coprod (nam:ns) = do
                        rest)
 coprod _ = throwError "Trying to form coproduct of no arguments"
 
-
+-- | Build signature of categories with empty maps
 buildSigCat :: [Decl ()] -> Except String Sig
 buildSigCat [] = return Map.empty
 buildSigCat ((PieceCatDecl _l category):decls) = do
@@ -213,7 +210,7 @@ buildSigCat ((PieceCatDecl _l category):decls) = do
          Nothing -> return $ Map.insert category' Set.empty sig
 buildSigCat (_:decls) = buildSigCat decls
     
--- | Build signature, map of categories to their pieces
+-- | Build signature, add pieces to map of categories
 buildSigPiece :: [Decl ()] -> Sig -> Except String Sig
 buildSigPiece [] sig = return sig
 buildSigPiece  ((PieceDecl _ (category :: QName ()) headName _cons _derives):decls) sig = do
@@ -227,7 +224,6 @@ buildSigPiece  ((PieceDecl _ (category :: QName ()) headName _cons _derives):dec
         nameID :: Name () -> Except String String
         nameID (Ident _ s) = return s
         nameID _ = throwError "buildSigPiece: unexpected type of name"
-    
 buildSigPiece (_:decls) sig = buildSigPiece decls sig
 
 -- | Modify a list of import declarations to add the ones needed for compdata
@@ -255,17 +251,21 @@ modifyImports is =  concatMap (addImport is)
 importsContain :: String -> [ImportDecl ()] -> Bool
 importsContain nam = any (matchImport nam)
         
--- | Check if a import declaration match the given String
+-- | Check if an import declaration match the given String
 matchImport :: String -> ImportDecl () -> Bool
 matchImport s (ImportDecl {importModule = ModuleName _ nam}) = nam == s
 
+-- | Transform function to function name with prime
 toFuncName :: Name () -> Transform (Name ())
 toFuncName (Ident _ nam) = return $ Ident () (nam ++ "'")
 toFuncName _             = throwError "Expected ident name in CompFunDecl, but it was not that."
+
+-- | Transform function name to class name, with capital first letter
 toClassName :: Name () -> Transform (Name ())
 toClassName (Ident () (c:nam)) = return $ Ident () (toUpper c : nam)
 toClassName _             = throwError "Expected ident name in CompFunDecl, but it was not that."
 
+-- | Build a declaration of a class corresponding to a function
 functionClass :: Name () -> Name () -> Type () -> Transform (Decl ())
 functionClass className functionName t = do
     funType <- transformFunType className (TyApp () (TyVar () (Ident () "f")) (TyParen () termType)) t
@@ -273,9 +273,12 @@ functionClass className functionName t = do
         (DHApp () (DHead () className) (UnkindedVar () (Ident () "f"))) []
         (Just [classFunctionDecl functionName funType])
 
+        
+-- | Build the inner class declaration
 classFunctionDecl :: Name () -> Type () -> ClassDecl ()
 classFunctionDecl functionName t = ClsDecl () (TypeSig () [functionName] t)
 
+-- | Build function type
 transformFunType :: Name () -> Type () -> Type () -> Transform (Type ())
 transformFunType cname replType t = do
     sig <- ask
@@ -284,6 +287,7 @@ transformFunType cname replType t = do
   where
     convType sig t = return (fromMaybe t (maybeConvType sig replType t))
 
+-- | Maybe convert type if it matches a piece in signature
 maybeConvType :: Sig -> Type () -> Type () -> Maybe (Type ())
 maybeConvType sig replType (TyCon () qname) = do
     if Map.member (const () <$> qname) sig
@@ -291,20 +295,25 @@ maybeConvType sig replType (TyCon () qname) = do
       else Nothing
 maybeConvType _ _ _ = Nothing
 
+-- | Build type for term with parametric part "g"
 termType :: Type ()
 termType = TyApp () termName (TyVar () (Ident () "g"))
 
+-- | Build type of name for term 
 termName :: Type ()
 termName = TyCon () (Qual () (ModuleName () "Data.Comp") (Ident () "Term"))
 
+-- | Build function signature
 functionsig :: Name () -> Name () -> Type () -> Transform (Decl ())
 functionsig nam className t = do
     funType <- transformFunType className termType t
     return $ TypeSig () [nam] funType
 
+-- | Build declaration of final function that combines the class function with unTerm
 functionBind :: Name () -> Name () -> Decl ()
 functionBind nam funcName = PatBind () (PVar () nam) (UnGuardedRhs () (InfixApp () (Var () (UnQual () funcName)) (QVarOp () (UnQual () (Symbol () "."))) (Var () (Qual () (ModuleName () "Data.Comp") (Ident () "unTerm"))))) Nothing
 
+-- | Derives liftSum for the function class
 liftSum :: Name () -> Decl ()
 liftSum className = SpliceDecl () (SpliceExp () (ParenSplice () (App () (App () (deriveTHListElem "derive") (List () [deriveTHListElem "liftSum"])) (List () [TypQuote () (UnQual () className)]))))
 

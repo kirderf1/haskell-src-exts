@@ -26,13 +26,12 @@ main = do
   where
     runTests :: Module SrcSpanInfo -> Bool -> IO ()
     runTests ast debug = do
-      if debug
-         then do putStrLn "AST structure before:"
-                 showModule ast
-                 putStrLn "Pretty-print before:"
-                 putStrLn $ prettyPrint ast
-         else return ()
-      case runExcept (transform (const () <$> ast)) of
+      when debug
+        $ do putStrLn "AST structure before:"
+             showModule ast
+             putStrLn "Pretty-print before:"
+             putStrLn $ prettyPrint ast
+      case runExcept (transform $ void ast) of
          Left msg -> putStrLn msg
          Right ast' -> if debug
                           then do putStrLn "AST structure after:"
@@ -41,11 +40,8 @@ main = do
                                   putStrLn $ prettyPrint ast'
                           else putStrLn $ prettyPrint ast'
 
-showModule :: Module l -> IO()
-showModule = putStrLn . show . removeSrcSpanInfo
-
-removeSrcSpanInfo :: Module l -> Module ()
-removeSrcSpanInfo = fmap $ const ()
+showModule :: Module l -> IO ()
+showModule = print . void
 
   --     data SrcSpanInfo = SrcSpanInfo
   --     { srcInfoSpan    :: SrcSpan

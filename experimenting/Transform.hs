@@ -37,7 +37,7 @@ transformModule m@(Module _ mhead pragmas imports decls) =
             let pragmas' = modifyPragmas pragmas
                 imports' = modifyImports imports
             
-            decls' <- liftM concat (mapM transformDecl decls)
+            decls' <- concat <$> mapM transformDecl decls
             mapType transformType (Module () mhead pragmas' imports' decls')
         else return m
 transformModule _xml = throwError "transformModule not defined for xml formats" 
@@ -45,24 +45,23 @@ transformModule _xml = throwError "transformModule not defined for xml formats"
 
 -- | Transform a top level declaration to one or more new declarations
 transformDecl :: Decl () -> Transform [Decl ()]
-transformDecl (PieceDecl _ (category :: QName ()) headName cons derives) = 
+transformDecl (PieceDecl _ category headName cons derives) = 
     let parname = getParName
         cspar = map (parametConstructor parname category) cons
         in
-    return ((DataDecl 
+    return (DataDecl 
         ()
         (DataType ())
         Nothing 
         (DHApp () (DHead () headName) (UnkindedVar () parname))
         cspar
         (deriveFunctor : derives)
-        )
         : [deriveTHPiece headName])
 transformDecl (PieceCatDecl _ _) = return []
-transformDecl (CompFunDecl () names t) = concat <$> (declsForName t `mapM` names)
+transformDecl (CompFunDecl () names t) = concat <$> (declsForName `mapM` names)
   where
-    declsForName :: Type () -> Name () -> Transform [Decl ()]
-    declsForName t nam = do
+    declsForName :: Name () -> Transform [Decl ()]
+    declsForName nam = do
         className <- toClassName nam
         funcName <- toFuncName nam
         classDecl <- functionClass className funcName t
@@ -76,7 +75,7 @@ transformType :: Type () -> Transform (Type ())
 transformType (TyComp _ category types) = do
     -- check if piece constructors are in category
     cats <- ask
-    let cat = fmap (const ()) category
+    let cat = void category
     case Map.lookup cat cats of
         Nothing -> throwError "transformType: Trying to form type of unknown category"
         Just pieces -> do 
@@ -176,7 +175,7 @@ modifyPragmas ps =  concatMap (addPragma (removeCompTypes ps))
         addPragma :: [ModulePragma ()] -> String -> [ModulePragma ()]
         addPragma prs nam = if pragmasContain nam prs 
                                  then prs
-                                 else (LanguagePragma () [Ident () nam]):prs
+                                 else LanguagePragma () [Ident () nam] : prs
         removeCompTypes = filter (not . matchPragma "ComposableTypes")
 
 -- | Check if the list of pragmas contain a certain one
@@ -203,7 +202,7 @@ buildSigCat :: [Decl ()] -> Except String Sig
 buildSigCat [] = return Map.empty
 buildSigCat ((PieceCatDecl _l category):decls) = do
     sig <- buildSigCat decls
-    let category' = (UnQual () (fmap (const ()) category))
+    let category' = UnQual () (void category)
 
     case Map.lookup category' sig of
          Just _ -> throwError $ "buildSigCat: category " ++ show category' ++ " already declared"
@@ -213,9 +212,9 @@ buildSigCat (_:decls) = buildSigCat decls
 -- | Build signature, add pieces to map of categories
 buildSigPiece :: [Decl ()] -> Sig -> Except String Sig
 buildSigPiece [] sig = return sig
-buildSigPiece  ((PieceDecl _ (category :: QName ()) headName _cons _derives):decls) sig = do
+buildSigPiece  ((PieceDecl _ category headName _cons _derives):decls) sig = do
     sig' <- buildSigPiece decls sig
-    let category' = fmap (const ()) category
+    let category' = void category
     idHead <- nameID headName
     case Map.lookup category' sig' of
         Just oldCons -> return $ Map.insert category' (Set.insert idHead oldCons) sig'
@@ -280,9 +279,9 @@ classFunctionDecl functionName t = ClsDecl () (TypeSig () [functionName] t)
 
 -- | Build function type
 transformFunType :: Name () -> Type () -> Type () -> Transform (Type ())
-transformFunType cname replType t = do
+transformFunType cname replType ty = do
     sig <- ask
-    resT <- mapType (convType sig) t
+    resT <- mapType (convType sig) ty
     return (TyForall () Nothing (Just (CxSingle () (ParenA () (TypeA () (TyApp () (TyCon () (UnQual () cname)) (TyVar () (Ident () "g"))))))) resT)
   where
     convType sig t = return (fromMaybe t (maybeConvType sig replType t))
@@ -290,7 +289,7 @@ transformFunType cname replType t = do
 -- | Maybe convert type if it matches a piece in signature
 maybeConvType :: Sig -> Type () -> Type () -> Maybe (Type ())
 maybeConvType sig replType (TyCon () qname) = do
-    if Map.member (const () <$> qname) sig
+    if Map.member (void qname) sig
       then Just replType
       else Nothing
 maybeConvType _ _ _ = Nothing

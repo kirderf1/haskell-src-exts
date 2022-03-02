@@ -66,7 +66,7 @@ transformDecl (CompFunDecl () names t) = concat <$> (declsForName `mapM` names)
         funcName <- toFuncName nam
         classDecl <- functionClass className funcName t
         sigDecl <- functionsig nam className t
-        return [classDecl, sigDecl, functionBind nam funcName, liftSum className]
+        return [classDecl, sigDecl, functionBind nam funcName, noinline nam, liftSum className]
 transformDecl (CompFunInst _ funName pieceName Nothing) = do
     instHead <- createInstHead funName pieceName
     return [InstDecl () Nothing instHead Nothing]
@@ -308,6 +308,9 @@ functionsig nam className t = do
 -- | Build declaration of final function that combines the class function with unTerm
 functionBind :: Name () -> Name () -> Decl ()
 functionBind nam funcName = patBind (pvar nam) (infixApp (var funcName) (op (sym ".")) (qvar (ModuleName () "Data.Comp") (name "unTerm")))
+
+noinline :: Name () -> Decl ()
+noinline nam = InlineSig () False Nothing (UnQual () nam)
 
 -- | Derives liftSum for the function class
 liftSum :: Name () -> Decl ()

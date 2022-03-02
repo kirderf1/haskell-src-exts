@@ -8,21 +8,11 @@ import System.Environment
 
 main :: IO ()
 main = do
-  args <- getArgs
-  case args of 
-    ("debug":[file]) -> do
-        res <- parseFile file
-        case res of 
-            f@ParseFailed{} -> print f
-            ParseOk ast -> runTests ast True
-    [file] -> do
-  -- let file = "experimenting/tests/Common.hs"
-        res <- parseFile file
-        case res of   
-            f@ParseFailed{} -> print f
-            ParseOk ast -> runTests ast False
-    _ -> putStrLn "Wrong number of arguments"
-
+  (debug, file) <- parseArgs <$> getArgs
+  res <- parseFile file
+  case res of 
+      f@ParseFailed{} -> error $ show f
+      ParseOk ast -> runTests ast debug
   where
     runTests :: Module SrcSpanInfo -> Bool -> IO ()
     runTests ast debug = do
@@ -32,13 +22,18 @@ main = do
              putStrLn "Pretty-print before:"
              putStrLn $ prettyPrint ast
       case runExcept (transform $ void ast) of
-         Left msg -> putStrLn msg
+         Left msg -> error msg
          Right ast' -> if debug
                           then do putStrLn "AST structure after:"
                                   showModule ast'
                                   putStrLn "Pretty-print after:"
                                   putStrLn $ prettyPrint ast'
                           else putStrLn $ prettyPrint ast'
+
+parseArgs :: [String] -> (Bool, FilePath)
+parseArgs ("debug":[file]) = (True, file)
+parseArgs [file] = (False, file)
+parseArgs _ = error "Wrong number of arguments"
 
 showModule :: Module l -> IO ()
 showModule = print . void

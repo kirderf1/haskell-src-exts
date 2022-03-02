@@ -125,14 +125,14 @@ deriveFunctor =
   Deriving () Nothing
     [IRule () Nothing 
       Nothing
-      (IHCon () (UnQual () (Ident () "Functor")))]
+      (IHCon () (UnQual () (name "Functor")))]
 
 
 
 -- | Get a name for the parametrized variable.            
 -- TODO: Figure out how to handle unique names for parametrize variables
 getParName :: Name ()
-getParName = Ident () "a"
+getParName = name "a"
 
 
 -- | Template Haskell derive for a piece
@@ -145,22 +145,12 @@ deriveTH :: Name () -> [String] -> Decl ()
 deriveTH targetName list = SpliceDecl () 
         (SpliceExp ()
             (ParenSplice ()
-                (App ()
-                    (App ()
-                        (Var ()
-                            (Qual () (ModuleName () "Data.Comp.Derive") (Ident () "derive"))
-                        ) 
-                        (List ()
-                            (map deriveTHListElem list)
-                        )
+                (app
+                    (app
+                        (qvar (ModuleName () "Data.Comp.Derive") (name "derive")) 
+                        (List () (map deriveTHListElem list))
                     ) 
-                    (List l 
-                        [TypQuote l
-                            (UnQual l
-                                targetName
-                            )
-                        ]
-                    )
+                    (List l [TypQuote l (UnQual l targetName)])
                 )
             )
         )
@@ -169,7 +159,7 @@ deriveTH targetName list = SpliceDecl ()
 
 -- | Element for a thing to derive with Template Haskell
 deriveTHListElem :: String -> Exp ()
-deriveTHListElem nam = Var () (Qual () (ModuleName () "Data.Comp.Derive") (Ident () nam))
+deriveTHListElem nam = qvar (ModuleName () "Data.Comp.Derive") (name nam)
 
 
 -- TODO: possibly more pragmas?
@@ -182,7 +172,7 @@ modifyPragmas ps =  concatMap (addPragma (removeCompTypes ps))
         addPragma :: [ModulePragma ()] -> String -> [ModulePragma ()]
         addPragma prs nam = if pragmasContain nam prs 
                                  then prs
-                                 else LanguagePragma () [Ident () nam] : prs
+                                 else LanguagePragma () [name nam] : prs
         removeCompTypes = filter (not . matchPragma "ComposableTypes")
 
 -- | Check if the list of pragmas contain a certain one
@@ -200,7 +190,7 @@ coprod [nam] = return $ TyCon () nam
 coprod (nam:ns) = do
     rest <- coprod ns
     return (TyInfix () (TyCon () nam)
-                      (UnpromotedName () (Qual () (ModuleName () "Data.Comp") (Symbol () ":+:")))
+                      (UnpromotedName () (Qual () (ModuleName () "Data.Comp") (sym ":+:")))
                        rest)
 coprod _ = throwError "Trying to form coproduct of no arguments"
 
@@ -263,20 +253,20 @@ matchImport s (ImportDecl {importModule = ModuleName _ nam}) = nam == s
 
 -- | Transform function to function name with prime
 toFuncName :: Name () -> Transform (Name ())
-toFuncName (Ident _ nam) = return $ Ident () (nam ++ "'")
+toFuncName (Ident _ nam) = return $ name (nam ++ "'")
 toFuncName _             = throwError "Expected ident name in CompFunDecl, but it was not that."
 
 -- | Transform function name to class name, with capital first letter
 toClassName :: Name () -> Transform (Name ())
-toClassName (Ident () (c:nam)) = return $ Ident () (toUpper c : nam)
+toClassName (Ident _ (c:nam)) = return $ name (toUpper c : nam)
 toClassName _             = throwError "Expected ident name in CompFunDecl, but it was not that."
 
 -- | Build a declaration of a class corresponding to a function
 functionClass :: Name () -> Name () -> Type () -> Transform (Decl ())
 functionClass className functionName t = do
-    funType <- transformFunType className (TyApp () (TyVar () (Ident () "f")) (TyParen () termType)) t
+    funType <- transformFunType className (TyApp () (TyVar () (name "f")) (TyParen () termType)) t
     return $ ClassDecl () Nothing
-        (DHApp () (DHead () className) (UnkindedVar () (Ident () "f"))) []
+        (DHApp () (DHead () className) (UnkindedVar () (name "f"))) []
         (Just [classFunctionDecl functionName funType])
 
         
@@ -289,7 +279,7 @@ transformFunType :: Name () -> Type () -> Type () -> Transform (Type ())
 transformFunType cname replType ty = do
     sig <- ask
     resT <- mapType (convType sig) ty
-    return (TyForall () Nothing (Just (CxSingle () (ParenA () (TypeA () (TyApp () (TyCon () (UnQual () cname)) (TyVar () (Ident () "g"))))))) resT)
+    return (TyForall () Nothing (Just (CxSingle () (ParenA () (TypeA () (TyApp () (TyCon () (UnQual () cname)) (TyVar () (name "g"))))))) resT)
   where
     convType sig t = return (fromMaybe t (maybeConvType sig replType t))
 
@@ -303,11 +293,11 @@ maybeConvType _ _ _ = Nothing
 
 -- | Build type for term with parametric part "g"
 termType :: Type ()
-termType = TyApp () termName (TyVar () (Ident () "g"))
+termType = TyApp () termName (TyVar () (name "g"))
 
 -- | Build type of name for term 
 termName :: Type ()
-termName = TyCon () (Qual () (ModuleName () "Data.Comp") (Ident () "Term"))
+termName = TyCon () (Qual () (ModuleName () "Data.Comp") (name "Term"))
 
 -- | Build function signature
 functionsig :: Name () -> Name () -> Type () -> Transform (Decl ())
@@ -317,11 +307,11 @@ functionsig nam className t = do
 
 -- | Build declaration of final function that combines the class function with unTerm
 functionBind :: Name () -> Name () -> Decl ()
-functionBind nam funcName = PatBind () (PVar () nam) (UnGuardedRhs () (InfixApp () (Var () (UnQual () funcName)) (QVarOp () (UnQual () (Symbol () "."))) (Var () (Qual () (ModuleName () "Data.Comp") (Ident () "unTerm"))))) Nothing
+functionBind nam funcName = patBind (pvar nam) (infixApp (var funcName) (op (sym ".")) (qvar (ModuleName () "Data.Comp") (name "unTerm")))
 
 -- | Derives liftSum for the function class
 liftSum :: Name () -> Decl ()
-liftSum className = SpliceDecl () (SpliceExp () (ParenSplice () (App () (App () (deriveTHListElem "derive") (List () [deriveTHListElem "liftSum"])) (List () [TypQuote () (UnQual () className)]))))
+liftSum className = SpliceDecl () (SpliceExp () (ParenSplice () (app (app (deriveTHListElem "derive") (List () [deriveTHListElem "liftSum"])) (List () [TypQuote () (UnQual () className)]))))
 
 -- | Check if all parts of a composition type are in the category
 checkInCategory :: Set String -> [String] -> Except String ()

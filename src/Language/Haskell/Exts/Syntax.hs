@@ -344,7 +344,7 @@ data Decl l
      | PieceCatDecl l (Name l)
      | PieceDecl      l (QName l) (Name l) [QualConDecl l] [Deriving l]
      | CompFunDecl    l [Name l] (Type l)
-     | CompFunInst    l (Name l) (Name l) (Maybe [InstDecl l])
+     | CompFunInst    l (QName l) (QName l) (Maybe [InstDecl l])
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
 data  PatternSynDirection l =

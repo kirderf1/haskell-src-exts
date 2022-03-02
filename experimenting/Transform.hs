@@ -67,6 +67,13 @@ transformDecl (CompFunDecl () names t) = concat <$> (declsForName `mapM` names)
         classDecl <- functionClass className funcName t
         sigDecl <- functionsig nam className t
         return [classDecl, sigDecl, functionBind nam funcName, liftSum className]
+transformDecl (CompFunInst _ funName pieceName Nothing) = do
+    instHead <- createInstHead funName pieceName
+    return [InstDecl () Nothing instHead Nothing]
+transformDecl (CompFunInst _ funName pieceName (Just instDecls)) = do 
+    instHead <- createInstHead funName pieceName
+    instDecls' <- mapM transformInstDecl instDecls
+    return [InstDecl () Nothing instHead (Just instDecls')]
 
 transformDecl d = return [d]
 
@@ -322,3 +329,36 @@ checkInCategory _ [] = return ()
 checkInCategory pieces (p:ps) = if Set.member p pieces
     then checkInCategory pieces ps
     else throwError $ "checkInCategory: Piece: " ++ show p ++ " not found in category"
+    
+    
+-- | Create instance head (roughly the first line of an instance declaration)
+createInstHead :: QName () -> QName () -> Transform (InstRule ())
+createInstHead funName pieceName = do
+    className <- toClassQName funName
+    return $ IRule () Nothing Nothing (IHApp () (IHCon () className) (TyCon () pieceName))
+    where toClassQName (Qual () moduleName fname) = do
+                cname <- toClassName fname
+                return $ Qual () moduleName cname
+          toClassQName (UnQual () fname) = do 
+                cname <- toClassName fname
+                return $ UnQual () cname
+          toClassQName _ = throwError "createInstHead: toClassQName: unexpected type of funtion name"
+
+
+-- | transform an instance declaration to have the function with a prime
+transformInstDecl :: InstDecl () -> Transform (InstDecl ())
+transformInstDecl (InsDecl () (FunBind () matches)) = do 
+    matches' <- mapM transformMatch matches
+    return $ InsDecl () (FunBind () matches')
+transformInstDecl _ = throwError "transformInstDecl: unexpected type of instance declaration"
+-- TODO: Possibly other constructs for InstDecl
+
+-- | transform function part of the instance declaration to have a prime on function name
+transformMatch :: Match () -> Transform (Match ())
+transformMatch (Match () funName patterns rhs maybeBinds) = do
+    funName' <- toFuncName funName
+    return (Match () funName' patterns rhs maybeBinds)
+transformMatch (InfixMatch () pat funName patterns rhs maybeBinds) = do
+    funName' <- toFuncName funName
+    return (InfixMatch () pat funName' patterns rhs maybeBinds)
+              

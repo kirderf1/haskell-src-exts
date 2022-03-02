@@ -712,13 +712,12 @@ Requires Composable Types extension
 >                                            let {(vs,ss,_) = $3 ; l = $1 <> $5 <** ($2 : reverse ss ++ [$4]) } ;
 >                                            return $ CompFunDecl l (v : reverse vs) $5 } }
 
->       | exp0b 'for' con optvaldefs
+>       | qvar 'for' qcon optvaldefs
 >                {% do { 
-                    checkEnabled ComposableTypes ;
->                   v <- checkSigVar $1 ;
+>                   checkEnabled ComposableTypes ;
 >                   let { (mis,ss,minf) = $4 ;
 >                         l = nIS $2 <++> $1 <> $3 <+?> minf <** ss };
->                   return $ CompFunInst l v $3 mis }}
+>                   return $ CompFunInst l $1 $3 mis }}
 
 >       | decl          { $1 }
 

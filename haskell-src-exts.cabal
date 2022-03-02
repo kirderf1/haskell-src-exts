@@ -115,8 +115,8 @@ executable program
                     haskell-src-exts,
                     containers, 
                     mtl  
-  hs-source-dirs:   experimenting
-  Default-language: Haskell98
+  hs-source-dirs:   comp-transform/src
+  Default-language: Haskell2010
   Ghc-options:      -threaded -Wall
 
 

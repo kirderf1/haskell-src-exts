@@ -118,5 +118,22 @@ executable program
   hs-source-dirs:   comp-transform/src
   Default-language: Haskell2010
   Ghc-options:      -threaded -Wall
+  
+executable testsuite
+  main-is:          TestRunner.hs
+  other-modules:    Transform,
+                    Types
+  Build-Tools:      happy >= 1.19
+  build-depends:    array >= 0.1, pretty >= 1.0,
+                    base >= 4.5 && < 5,
+                    haskell-src-exts,
+                    containers, 
+                    mtl,
+                    tasty,
+                    tasty-golden,
+                    filepath
+  hs-source-dirs:   comp-transform/src, comp-transform/tests/testsuite
+  Default-language: Haskell2010
+  Ghc-options:      -threaded -Wall
 
 

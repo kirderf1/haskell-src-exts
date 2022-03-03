@@ -224,12 +224,12 @@ buildSigPiece (_:decls) sig = buildSigPiece decls sig
 
 -- | Modify a list of import declarations to add the ones needed for compdata
 modifyImports :: [ImportDecl ()] -> [ImportDecl ()]
-modifyImports is =  concatMap (addImport is)
+modifyImports is =  foldr addImport is
                                 ["Data.Comp", "Data.Comp.Derive",
                                  "Data.Comp.Show ()", "Data.Comp.Equality ()"] 
     where  
-        addImport :: [ImportDecl ()] -> String -> [ImportDecl ()]
-        addImport is1 nam = if importsContain nam is1 
+        addImport :: String -> [ImportDecl ()] -> [ImportDecl ()]
+        addImport nam is1 = if importsContain nam is1 
                                  then is1
                                  else (ImportDecl
                                  { importAnn = ()                     -- ^ annotation, used by parser for position of the @import@ keyword.

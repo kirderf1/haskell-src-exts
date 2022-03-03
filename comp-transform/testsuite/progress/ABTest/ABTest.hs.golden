@@ -1,0 +1,48 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleContexts #-}
+import qualified Data.Comp
+import qualified Data.Comp.Derive
+import qualified Data.Comp.Show ()
+import qualified Data.Comp.Equality ()
+
+data A a = A a B
+             deriving Functor
+
+$(
+  Data.Comp.Derive.derive
+    [Data.Comp.Derive.makeTraversable, Data.Comp.Derive.makeFoldable,
+     Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
+     Data.Comp.Derive.smartConstructors,
+     Data.Comp.Derive.smartAConstructors]
+    [''A]
+  )
+
+data Ab a = Ab Bool B
+              deriving Functor
+
+$(
+  Data.Comp.Derive.derive
+    [Data.Comp.Derive.makeTraversable, Data.Comp.Derive.makeFoldable,
+     Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
+     Data.Comp.Derive.smartConstructors,
+     Data.Comp.Derive.smartAConstructors]
+    [''Ab]
+  )
+
+data B a = B Bool
+         | Bi Int
+             deriving Functor
+
+$(
+  Data.Comp.Derive.derive
+    [Data.Comp.Derive.makeTraversable, Data.Comp.Derive.makeFoldable,
+     Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
+     Data.Comp.Derive.smartConstructors,
+     Data.Comp.Derive.smartAConstructors]
+    [''B]
+  )
+
+type CombinedA = Data.Comp.Term (A Data.Comp.:+: Ab)
+main = putStrLn $ "Det funkar!"

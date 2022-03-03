@@ -1,0 +1,49 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleContexts #-}
+import qualified Data.Comp
+import qualified Data.Comp.Derive
+import qualified Data.Comp.Show ()
+import qualified Data.Comp.Equality ()
+
+data B a = B Int
+             deriving Functor
+
+$(
+  Data.Comp.Derive.derive
+    [Data.Comp.Derive.makeTraversable, Data.Comp.Derive.makeFoldable,
+     Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
+     Data.Comp.Derive.smartConstructors,
+     Data.Comp.Derive.smartAConstructors]
+    [''B]
+  )
+
+data C a = C deriving Functor
+
+$(
+  Data.Comp.Derive.derive
+    [Data.Comp.Derive.makeTraversable, Data.Comp.Derive.makeFoldable,
+     Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
+     Data.Comp.Derive.smartConstructors,
+     Data.Comp.Derive.smartAConstructors]
+    [''C]
+  )
+
+data D a = D a
+             deriving Functor
+
+$(
+  Data.Comp.Derive.derive
+    [Data.Comp.Derive.makeTraversable, Data.Comp.Derive.makeFoldable,
+     Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
+     Data.Comp.Derive.smartConstructors,
+     Data.Comp.Derive.smartAConstructors]
+    [''D]
+  )
+
+type E = Data.Comp.Term (B Data.Comp.:+: C Data.Comp.:+: D)
+
+e :: Int -> Maybe E
+e = undefined
+main = putStrLn $ "Det funkar!"

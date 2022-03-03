@@ -8,11 +8,13 @@ import System.Environment
 
 main :: IO ()
 main = do
-  (debug, file) <- parseArgs <$> getArgs
+  arg <- parseArgs <$> getArgs
+  let file = inputFile arg
+  when (null file) (error "Missing input file")
   res <- parseFile file
   case res of 
       f@ParseFailed{} -> error $ show f
-      ParseOk ast -> runTests ast debug
+      ParseOk ast -> runTests ast (debugPrint arg)
   where
     runTests :: Module SrcSpanInfo -> Bool -> IO ()
     runTests ast debug = do
@@ -30,17 +32,22 @@ main = do
                                   putStrLn $ prettyPrint ast'
                           else putStrLn $ prettyPrint ast'
 
-parseArgs :: [String] -> (Bool, FilePath)
-parseArgs ("debug":[file]) = (True, file)
-parseArgs [file] = (False, file)
-parseArgs _ = error "Wrong number of arguments"
-
 showModule :: Module l -> IO ()
 showModule = print . void
 
-  --     data SrcSpanInfo = SrcSpanInfo
-  --     { srcInfoSpan    :: SrcSpan
-  -- --    , explLayout     :: Bool
-  --     , srcInfoPoints  :: [SrcSpan]    -- Marks the location of specific entities inside the span
-  --     }
+
+data Args = Args
+  { inputFile :: FilePath
+  , debugPrint :: Bool
+  }
+
+parseArgs :: [String] -> Args
+parseArgs ("--debug" : rest) = case parseArgs rest of
+         arg | not (debugPrint arg) -> arg{debugPrint=True}
+         _                     -> error "Duplicate debug flag"
+parseArgs (flag@('-':_) : _) = error ("Unknown flag: " ++ flag)
+parseArgs (file : rest) = case parseArgs rest of
+         arg | null $ inputFile arg -> arg{inputFile=file}
+         _                          -> error "Multiple input files are not supported"
+parseArgs [] = Args {inputFile = "", debugPrint = False}
 

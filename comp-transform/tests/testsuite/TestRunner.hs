@@ -15,9 +15,11 @@ main = do
     goodSources <- getTestFiles goodDir
     progressSources <- getTestFiles progressDir
     badSources <- getTestFiles badDir
-    --defaultMain $ runTests (goodSources, progressSources, badSources)
-    defaultMain $ testGood $ goodDir ++ "/PieceConst.hs"
-  
+    defaultMain $ testGroup "Tests" $
+        [ testGolden goodSources,
+          testGolden progressSources,
+          testGolden badSources
+        ]  
   
  
 type TestSuite = ([FilePath], [FilePath], [FilePath])
@@ -33,38 +35,40 @@ progressDir = testsuite ++ "progress"
 
 badDir :: FilePath
 badDir = testsuite ++ "bad"
+
+goldenDir :: FilePath
+goldenDir = "golden"
+
+getGolden :: FilePath -> FilePath
+getGolden file = replaceDirectory file (takeDirectory file </> goldenDir) <.> "golden"
+
+outputDir :: FilePath
+outputDir = "output"
+
+getOutput :: FilePath -> FilePath
+getOutput file = replaceDirectory file (takeDirectory file </> outputDir) <.> "out"
+
   
 getTestFiles :: MonadIO m => FilePath -> m [FilePath]
 getTestFiles dir = liftIO $ findByExtension [".hs"] dir
   
-{-
-runTests :: TestSuite -> IO ()
-runTests (goodSources, progressSources, badSources) = do
-    good <- mapM testGood goodSources
-    print good
-    -}  
     
-testGood :: FilePath -> TestTree
-testGood file = 
-    -- expectedOutput <- readFile (file ++ ".out")
-    let golden = file <.> "golden"
-        out = file <.> "out"
+testGolden :: [FilePath] -> TestTree
+testGolden files = testGroup "Transform tests" $ do
+    file <- files
+    let golden = getGolden file 
+        out = getOutput file
         run = do
             parseResult <- parseFile file
             case parseResult of 
-                f@ParseFailed{} -> error $ show f
+                f@ParseFailed{} -> writeBinaryFile out $ show f ++ "\n"
                 ParseOk ast -> do
                     case runExcept (transform $ void ast) of
-                        Left msg -> error msg
+                        Left msg ->  writeBinaryFile out $ msg ++ "\n"
                         Right ast' -> do let result = prettyPrint ast'
                                          writeBinaryFile out $ result ++ "\n"
-    in    
-            -- transformResult <- runTransform ast
-            -- putStrLn transformResult
-            -- putStrLn expectedOutput
-    goldenVsFile (takeBaseName file) golden out run
-           -- return $ goldenVsString (takeBaseName file) golden (runTransform ast)
+    return $ goldenVsFile (takeBaseName file) golden out run
 
-        
+
     
   

@@ -8,67 +8,65 @@ import Test.Tasty.Golden
 import Test.Tasty
 import Control.Monad.Except
 import System.FilePath
+import System.Directory (doesDirectoryExist, createDirectoryIfMissing)
 
 
 main :: IO ()
 main = do
-    goodSources <- getTestFiles goodDir
-    progressSources <- getTestFiles progressDir
-    badSources <- getTestFiles badDir
-    defaultMain $ testGroup "Tests" $
-        [ testGolden goodSources,
-          testGolden progressSources,
-          testGolden badSources
-        ]  
+    tests <- createTree `mapM` groups
+    defaultMain $ testGroup "Tests" tests
   
  
 type TestSuite = ([FilePath], [FilePath], [FilePath])
   
 testsuite :: FilePath
 testsuite = "comp-transform/tests/testsuite/"
-  
-goodDir :: FilePath
-goodDir = testsuite ++ "good"
 
-progressDir :: FilePath
-progressDir = testsuite ++ "progress"
-
-badDir :: FilePath
-badDir = testsuite ++ "bad"
+groups :: [FilePath]
+groups = [ "good", "progress", "bad"]
 
 goldenDir :: FilePath
 goldenDir = "golden"
 
-getGolden :: FilePath -> FilePath
-getGolden file = replaceDirectory file (takeDirectory file </> goldenDir) <.> "golden"
+getGoldenPath :: FilePath -> FilePath
+getGoldenPath file = replaceDirectory file (takeDirectory file </> goldenDir) <.> "golden"
 
 outputDir :: FilePath
 outputDir = "output"
 
-getOutput :: FilePath -> FilePath
-getOutput file = replaceDirectory file (takeDirectory file </> outputDir) <.> "out"
+getOutputPath :: FilePath -> FilePath
+getOutputPath file = replaceDirectory file (takeDirectory file </> outputDir) <.> "out"
 
   
 getTestFiles :: MonadIO m => FilePath -> m [FilePath]
-getTestFiles dir = liftIO $ findByExtension [".hs"] dir
-  
-    
-testGolden :: [FilePath] -> TestTree
-testGolden files = testGroup "Transform tests" $ do
+getTestFiles dir = liftIO $ do
+    exists <- doesDirectoryExist dir
+    if exists
+      then findByExtension [".hs"] dir
+      else return []
+
+createTree :: FilePath -> IO (TestTree)
+createTree group = testGolden group <$> getTestFiles (testsuite ++ group)    
+
+testGolden :: String -> [FilePath] -> TestTree
+testGolden group files = testGroup group $ do
     file <- files
-    let golden = getGolden file 
-        out = getOutput file
-        run = do
-            parseResult <- parseFile file
-            case parseResult of 
-                f@ParseFailed{} -> writeBinaryFile out $ show f ++ "\n"
-                ParseOk ast -> do
-                    case runExcept (transform $ void ast) of
-                        Left msg ->  writeBinaryFile out $ msg ++ "\n"
-                        Right ast' -> do let result = prettyPrint ast'
-                                         writeBinaryFile out $ result ++ "\n"
-    return $ goldenVsFile (takeBaseName file) golden out run
+    let golden = getGoldenPath file 
+        out = getOutputPath file
+    return $ goldenVsFile (takeBaseName file) golden out (runTest file out)
 
+runTest :: FilePath -> FilePath -> IO ()
+runTest file out = do
+    parseResult <- parseFile file
+    case parseResult of 
+        f@ParseFailed{} -> writeFileAndCreateDirectory out $ show f ++ "\n"
+        ParseOk ast -> do
+            case runExcept (transform $ void ast) of
+                Left msg ->  writeFileAndCreateDirectory out $ msg ++ "\n"
+                Right ast' -> do let result = prettyPrint ast'
+                                 writeFileAndCreateDirectory out $ result ++ "\n"
 
-    
-  
+writeFileAndCreateDirectory :: FilePath -> String -> IO ()
+writeFileAndCreateDirectory file text = do
+    createDirectoryIfMissing True $ takeDirectory file
+    writeBinaryFile file text

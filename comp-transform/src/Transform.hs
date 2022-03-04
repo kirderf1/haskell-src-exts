@@ -1,4 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 module Transform where
 
 import Language.Haskell.Exts
@@ -21,6 +23,7 @@ type Sig = Map (QName ()) (Set String)
 -- | Transform monad containing signature of categories and handles error messages as Strings.
 type Transform = ReaderT Sig (Except String)
 
+-- | Transform a module by building signature of categories and then transforming the content of the module
 transform :: Module () -> Except String (Module ())
 transform m@(Module _ _mhead _pragmas _imports decls) = do
     sigCat <- buildSigCat decls
@@ -58,7 +61,7 @@ transformDecl (PieceDecl _ category headName cons derives) =
         (deriveFunctor : derives)
         : [deriveTHPiece headName])
 transformDecl (PieceCatDecl _ _) = return []
-transformDecl (CompFunDecl () names t) = concat <$> (declsForName `mapM` names)
+transformDecl (CompFunDecl _ names t) = concat <$> (declsForName `mapM` names)
   where
     declsForName :: Name () -> Transform [Decl ()]
     declsForName nam = do
@@ -91,9 +94,9 @@ transformType (TyComp _ category types) = do
             coprodtype <- coprod types
             return $ TyApp () termName (TyParen () coprodtype)
       where catName :: QName () -> Except String String
-            catName (Qual _ _moduleName (Ident _ c)) = return c
-            catName (UnQual _ (Ident _ c)) = return c
-            catName _ = throwError "transformType: unexpected type of category name"
+            catName qnam@(Qual _ _moduleName nam) = nameStr nam $ "TyComp with " ++ show qnam
+            catName qnam@(UnQual _ nam) = nameStr nam $ "TyComp with " ++ show qnam
+            catName _ = throwError "transformType: unexpected special QName "
             -- TODO: special QName?
 transformType t = return t
 
@@ -150,11 +153,10 @@ deriveTH targetName list = SpliceDecl ()
                         (qvar (ModuleName () "Data.Comp.Derive") (name "derive")) 
                         (List () (map deriveTHListElem list))
                     ) 
-                    (List l [TypQuote l (UnQual l targetName)])
+                    (List () [TypQuote () (UnQual () targetName)])
                 )
             )
         )
-    where l = ann targetName
 
 
 -- | Element for a thing to derive with Template Haskell
@@ -165,12 +167,12 @@ deriveTHListElem nam = qvar (ModuleName () "Data.Comp.Derive") (name nam)
 -- TODO: possibly more pragmas?
 -- | Modify a list of pragmas to remove ComposableTypes and add the ones needed for compdata
 modifyPragmas :: [ModulePragma ()] -> [ModulePragma ()]
-modifyPragmas ps =  concatMap (addPragma (removeCompTypes ps)) 
+modifyPragmas ps =  foldr addPragma (removeCompTypes ps)
                                 ["DeriveFunctor","TemplateHaskell","TypeOperators"
                                 ,"FlexibleContexts"] 
     where  
-        addPragma :: [ModulePragma ()] -> String -> [ModulePragma ()]
-        addPragma prs nam = if pragmasContain nam prs 
+        addPragma :: String -> [ModulePragma ()] -> [ModulePragma ()]
+        addPragma nam prs = if pragmasContain nam prs 
                                  then prs
                                  else LanguagePragma () [name nam] : prs
         removeCompTypes = filter (not . matchPragma "ComposableTypes")
@@ -197,7 +199,7 @@ coprod _ = throwError "Trying to form coproduct of no arguments"
 -- | Build signature of categories with empty maps
 buildSigCat :: [Decl ()] -> Except String Sig
 buildSigCat [] = return Map.empty
-buildSigCat ((PieceCatDecl _l category):decls) = do
+buildSigCat ((PieceCatDecl _ category):decls) = do
     sig <- buildSigCat decls
     let category' = UnQual () (void category)
 
@@ -212,14 +214,10 @@ buildSigPiece [] sig = return sig
 buildSigPiece  ((PieceDecl _ category headName _cons _derives):decls) sig = do
     sig' <- buildSigPiece decls sig
     let category' = void category
-    idHead <- nameID headName
+    idHead <- nameStr headName ("PieceDecl with " ++ show headName)
     case Map.lookup category' sig' of
         Just oldCons -> return $ Map.insert category' (Set.insert idHead oldCons) sig'
         Nothing -> throwError $ "buildSigPiece: category " ++ show category' ++ " not declared."
-    where
-        nameID :: Name () -> Except String String
-        nameID (Ident _ s) = return s
-        nameID _ = throwError "buildSigPiece: unexpected type of name"
 buildSigPiece (_:decls) sig = buildSigPiece decls sig
 
 -- | Modify a list of import declarations to add the ones needed for compdata
@@ -253,13 +251,15 @@ matchImport s (ImportDecl {importModule = ModuleName _ nam}) = nam == s
 
 -- | Transform function to function name with prime
 toFuncName :: Name () -> Transform (Name ())
-toFuncName (Ident _ nam) = return $ name (nam ++ "'")
-toFuncName _             = throwError "Expected ident name in CompFunDecl, but it was not that."
+toFuncName nam = (\n -> name (n ++ "'")) <$> nameStr nam ("CompFuncDecl with " ++ show nam)
 
 -- | Transform function name to class name, with capital first letter
 toClassName :: Name () -> Transform (Name ())
-toClassName (Ident _ (c:nam)) = return $ name (toUpper c : nam)
-toClassName _             = throwError "Expected ident name in CompFunDecl, but it was not that."
+toClassName nam = do
+    str <- nameStr nam ("CompFunDecl with " ++ show nam)
+    let (s:ss) = str
+    return $ name (toUpper s : ss)
+    
 
 -- | Build a declaration of a class corresponding to a function
 functionClass :: Name () -> Name () -> Type () -> Transform (Decl ())
@@ -285,7 +285,7 @@ transformFunType cname replType ty = do
 
 -- | Maybe convert type if it matches a piece in signature
 maybeConvType :: Sig -> Type () -> Type () -> Maybe (Type ())
-maybeConvType sig replType (TyCon () qname) = do
+maybeConvType sig replType (TyCon _ qname) = do
     if Map.member (void qname) sig
       then Just replType
       else Nothing
@@ -329,29 +329,34 @@ createInstHead :: QName () -> QName () -> Transform (InstRule ())
 createInstHead funName pieceName = do
     className <- toClassQName funName
     return $ IRule () Nothing Nothing (IHApp () (IHCon () className) (TyCon () pieceName))
-    where toClassQName (Qual () moduleName fname) = do
+    where toClassQName (Qual _ moduleName fname) = do
                 cname <- toClassName fname
                 return $ Qual () moduleName cname
-          toClassQName (UnQual () fname) = do 
+          toClassQName (UnQual _ fname) = do 
                 cname <- toClassName fname
                 return $ UnQual () cname
           toClassQName _ = throwError "createInstHead: toClassQName: unexpected type of funtion name"
 
 
--- | transform an instance declaration to have the function with a prime
+-- | Transform an instance declaration to have the function with a prime
 transformInstDecl :: InstDecl () -> Transform (InstDecl ())
-transformInstDecl (InsDecl () (FunBind () matches)) = do 
+transformInstDecl (InsDecl _ (FunBind () matches)) = do 
     matches' <- mapM transformMatch matches
     return $ InsDecl () (FunBind () matches')
 transformInstDecl _ = throwError "transformInstDecl: unexpected type of instance declaration"
 -- TODO: Possibly other constructs for InstDecl
 
--- | transform function part of the instance declaration to have a prime on function name
+-- | Transform function part of the instance declaration to have a prime on function name
 transformMatch :: Match () -> Transform (Match ())
-transformMatch (Match () funName patterns rhs maybeBinds) = do
+transformMatch (Match _ funName patterns rhs maybeBinds) = do
     funName' <- toFuncName funName
     return (Match () funName' patterns rhs maybeBinds)
-transformMatch (InfixMatch () pat funName patterns rhs maybeBinds) = do
+transformMatch (InfixMatch _ pat funName patterns rhs maybeBinds) = do
     funName' <- toFuncName funName
     return (InfixMatch () pat funName' patterns rhs maybeBinds)
+    
+    
+nameStr :: MonadError String m => Name () -> String -> m String
+nameStr (Ident _ str) _ = return str
+nameStr _ err = throwError $ "Expected ident name in " ++ err ++  ", but it was not that."
               

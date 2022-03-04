@@ -3,5 +3,5 @@ comp-transform/testsuite/unclear/EmptyTyComp/EmptyTyCompTransform.hs:1:1: error:
     Parse error: module header, import declaration
     or top-level declaration expected.
   |
-1 | ParseFailed (SrcLoc "comp-transform/testsuite/unclear/EmptyTyComp/EmptyTyComp.hs" 6 17) "Parse error: )"
+1 | ParseFailed (SrcLoc "comp-transform/testsuite/unclear/EmptyTyComp/EmptyTyComp.hs" 8 17) "Parse error: )"
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

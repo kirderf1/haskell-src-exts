@@ -2,6 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
+module CompInFunctor where
 import qualified Data.Comp
 import qualified Data.Comp.Derive
 import qualified Data.Comp.Show ()
@@ -21,4 +22,3 @@ $(
 
 e :: Maybe (Data.Comp.Term (B))
 e = undefined
-main = putStrLn $ "Det funkar!"

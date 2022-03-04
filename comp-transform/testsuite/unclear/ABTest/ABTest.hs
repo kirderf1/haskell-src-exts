@@ -1,5 +1,7 @@
 {-# LANGUAGE ComposableTypes #-}
 
+module ABTest where
+
 piececategory A
 piececategory B
 
@@ -11,4 +13,3 @@ data piece B ==> B = B Bool | Bi Int
 
 type CombinedA = A ==> (A, Ab)
 
-main = putStrLn $ "Det funkar!"

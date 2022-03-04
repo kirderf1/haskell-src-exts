@@ -1,5 +1,7 @@
 {-# LANGUAGE ComposableTypes #-}
 
+module Ambiguity where
+
 piececategory A
 
 data A = B Bool

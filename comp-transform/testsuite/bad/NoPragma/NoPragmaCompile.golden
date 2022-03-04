@@ -1,0 +1,7 @@
+
+comp-transform/testsuite/bad/NoPragma/NoPragmaTransform.hs:1:1: error:
+    Parse error: module header, import declaration
+    or top-level declaration expected.
+  |
+1 | ParseFailed (SrcLoc "comp-transform/testsuite/bad/NoPragma/NoPragma.hs" 3 1) "TemplateHaskell language extension is not enabled. Please add {-# LANGUAGE TemplateHaskell #-} pragma at the top of your module."
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

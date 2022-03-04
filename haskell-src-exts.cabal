@@ -132,7 +132,8 @@ executable testsuite
                     tasty,
                     tasty-golden,
                     filepath,
-                    directory
+                    directory,
+                    process
   hs-source-dirs:   comp-transform/src, comp-transform/testsuite
   Default-language: Haskell2010
   Ghc-options:      -threaded -Wall

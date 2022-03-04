@@ -1,6 +1,1 @@
-
-comp-transform/testsuite/unclear/ABTest/ABTestTransform.hs:11:16: error:
-    Not in scope: type constructor or class B
-   |
-11 | data A a = A a B
-   |                ^
+OK

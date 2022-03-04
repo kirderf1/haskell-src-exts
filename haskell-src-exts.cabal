@@ -108,7 +108,8 @@ Test-Suite test
 executable program
   main-is:          Testparse.hs
   other-modules:    Transform,
-                    Types
+                    Types,
+                    Decls
   Build-Tools:      happy >= 1.19
   build-depends:    array >= 0.1, pretty >= 1.0,
                     base >= 4.5 && < 5,
@@ -122,7 +123,8 @@ executable program
 executable testsuite
   main-is:          TestRunner.hs
   other-modules:    Transform,
-                    Types
+                    Types,
+                    Decls
   Build-Tools:      happy >= 1.19
   build-depends:    array >= 0.1, pretty >= 1.0,
                     base >= 4.5 && < 5,

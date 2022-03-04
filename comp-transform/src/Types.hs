@@ -1,4 +1,4 @@
-module Types where
+module Types(mapType) where
 
 import Language.Haskell.Exts.Syntax
 
@@ -7,11 +7,11 @@ class TypeMap a where
 
 instance TypeMap Module where
     mapType f (Module l mmh ops iss dcls) =
-          Module l mmh ops iss <$> (mapType f `mapM` dcls)
+          Module l mmh <$> (mapType f `mapM` ops) <*> return iss <*> (mapType f `mapM` dcls)
     mapType f (XmlPage l mn os xn xas me es) =
-          XmlPage l mn os xn <$> (mapType f `mapM` xas) <*> (mapType f `mapM` me) <*> (mapType f `mapM` es)
+          XmlPage l mn <$> (mapType f `mapM` os) <*> return xn <*> (mapType f `mapM` xas) <*> (mapType f `mapM` me) <*> (mapType f `mapM` es)
     mapType f (XmlHybrid l mmh ops iss dcls xn xas me es) =
-          XmlHybrid l mmh ops iss <$> (mapType f `mapM` dcls) <*> return xn <*> (mapType f `mapM` xas) <*> (mapType f `mapM` me) <*> (mapType f `mapM` es)
+          XmlHybrid l mmh <$> (mapType f `mapM` ops) <*> return iss <*> (mapType f `mapM` dcls) <*> return xn <*> (mapType f `mapM` xas) <*> (mapType f `mapM` me) <*> (mapType f `mapM` es)
 
 instance TypeMap Decl where
     mapType f decl = case decl of
@@ -257,6 +257,11 @@ instance TypeMap Exp where
 
 instance TypeMap XAttr where
     mapType f (XAttr l xn e) = XAttr l xn <$> mapType f e
+
+instance TypeMap ModulePragma where
+    mapType _ (LanguagePragma   l ns) = return $ LanguagePragma l ns
+    mapType _ (OptionsPragma    l mt s) = return $ OptionsPragma l mt s
+    mapType f (AnnModulePragma  l a) = AnnModulePragma l <$> mapType f a
 
 instance TypeMap Bracket where
     mapType f (ExpBracket l e) = ExpBracket l <$> mapType f e

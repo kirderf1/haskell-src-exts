@@ -6,6 +6,7 @@ module Transform where
 import Language.Haskell.Exts
 
 import Types
+import Decls
 
 import           Data.Map   (Map)
 import qualified Data.Map as Map
@@ -40,8 +41,7 @@ transformModule m@(Module _ mhead pragmas imports decls) =
             let pragmas' = modifyPragmas pragmas
                 imports' = modifyImports imports
             
-            decls' <- concat <$> mapM transformDecl decls
-            mapType transformType (Module () mhead pragmas' imports' decls')
+            mapDecl transformDecl =<< mapType transformType (Module () mhead pragmas' imports' decls)
         else return m
 transformModule _xml = throwError "transformModule not defined for xml formats" 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)

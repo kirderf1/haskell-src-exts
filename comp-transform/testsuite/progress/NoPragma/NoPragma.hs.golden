@@ -1,1 +1,0 @@
-ParseFailed (SrcLoc "comp-transform/testsuite/progress/NoPragma/NoPragma.hs" 3 1) "TemplateHaskell language extension is not enabled. Please add {-# LANGUAGE TemplateHaskell #-} pragma at the top of your module."

@@ -42,8 +42,7 @@ $(
     [''D]
   )
 
-type E = Data.Comp.Term (B Data.Comp.:+: C Data.Comp.:+: D)
-
-e :: Int -> Maybe E
+e ::
+  Int -> Maybe (Data.Comp.Term (B Data.Comp.:+: C Data.Comp.:+: D))
 e = undefined
 main = putStrLn $ "Det funkar!"

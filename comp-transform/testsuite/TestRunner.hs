@@ -22,7 +22,7 @@ testsuite :: FilePath
 testsuite = "comp-transform/testsuite/"
 
 groups :: [FilePath]
-groups = [ "good", "progress", "bad"]
+groups = [ "good", "unclear", "bad"]
   
 getTestFiles :: FilePath -> IO [FilePath]
 getTestFiles dir = do

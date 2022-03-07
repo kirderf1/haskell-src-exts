@@ -53,4 +53,4 @@ instance Eval Op where
         eval' (Mult e1 e2) = eval e1 * eval e2
 
 evalEx :: Int
-evalEx = eval ((Data.Comp.inject . Add) ((Data.Comp.inject . Const) 1) ((Data.Comp.inject . Mult) ((Data.Comp.inject . Const) 2) ((Data.Comp.inject . Const) 2)) :: Sig)
+evalEx = eval (iConst 1 `iAdd` (iConst 2 `iMult` iConst 2) :: Sig)

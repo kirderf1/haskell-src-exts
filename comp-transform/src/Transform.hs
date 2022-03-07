@@ -7,6 +7,7 @@ import Language.Haskell.Exts
 
 import Types
 import Decls
+import Exps
 
 import           Data.Map   (Map)
 import qualified Data.Map as Map

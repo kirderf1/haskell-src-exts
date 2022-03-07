@@ -15,7 +15,7 @@ import System.Exit
 main :: IO ()
 main = do
     transformTests <- createTransformTree `mapM` groups
-    compileTests <- createCompileTree `mapM` ["good", "unclear"]
+    compileTests <- createCompileTree `mapM` ["good"]
     defaultMain $ testGroup "Tests" 
         [(testGroup "Transform tests") transformTests, 
          (testGroup "Compile tests") compileTests]          

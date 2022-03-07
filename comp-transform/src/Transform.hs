@@ -83,10 +83,8 @@ transformDecl d = return [d]
 -- | Transform a type
 transformType :: Type () -> Transform (Type ())
 transformType (TyComp _ category types) = do
-    -- check if piece constructors are in category
     cats <- ask
-    let cat = void category
-    case Map.lookup cat cats of
+    case Map.lookup category cats of
         Nothing -> throwError "transformType: Trying to form type of unknown category"
         Just pieces -> do 
             typeNames <- mapM (lift . catName) types
@@ -97,7 +95,6 @@ transformType (TyComp _ category types) = do
             catName qnam@(Qual _ _moduleName nam) = nameStr nam $ "TyComp with " ++ show qnam
             catName qnam@(UnQual _ nam) = nameStr nam $ "TyComp with " ++ show qnam
             catName _ = throwError "transformType: unexpected special QName "
-            -- TODO: special QName?
 transformType t = return t
 
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 
@@ -201,7 +198,7 @@ buildSigCat :: [Decl ()] -> Except String Sig
 buildSigCat [] = return Map.empty
 buildSigCat ((PieceCatDecl _ category):decls) = do
     sig <- buildSigCat decls
-    let category' = UnQual () (void category)
+    let category' = UnQual () category
 
     case Map.lookup category' sig of
          Just _ -> throwError $ "buildSigCat: category " ++ show category' ++ " already declared"
@@ -213,11 +210,10 @@ buildSigPiece :: [Decl ()] -> Sig -> Except String Sig
 buildSigPiece [] sig = return sig
 buildSigPiece  ((PieceDecl _ category headName _cons _derives):decls) sig = do
     sig' <- buildSigPiece decls sig
-    let category' = void category
     idHead <- nameStr headName ("PieceDecl with " ++ show headName)
-    case Map.lookup category' sig' of
-        Just oldCons -> return $ Map.insert category' (Set.insert idHead oldCons) sig'
-        Nothing -> throwError $ "buildSigPiece: category " ++ show category' ++ " not declared."
+    case Map.lookup category sig' of
+        Just oldCons -> return $ Map.insert category (Set.insert idHead oldCons) sig'
+        Nothing -> throwError $ "buildSigPiece: category " ++ show category ++ " not declared."
 buildSigPiece (_:decls) sig = buildSigPiece decls sig
 
 -- | Modify a list of import declarations to add the ones needed for compdata
@@ -286,7 +282,7 @@ transformFunType cname replType ty = do
 -- | Maybe convert type if it matches a piece in signature
 maybeConvType :: Sig -> Type () -> Type () -> Maybe (Type ())
 maybeConvType sig replType (TyCon _ qname) = do
-    if Map.member (void qname) sig
+    if Map.member qname sig
       then Just replType
       else Nothing
 maybeConvType _ _ _ = Nothing
@@ -355,7 +351,7 @@ transformMatch (InfixMatch _ pat funName patterns rhs maybeBinds) = do
     funName' <- toFuncName funName
     return (InfixMatch () pat funName' patterns rhs maybeBinds)
     
-    
+-- | Return string part of a name    
 nameStr :: MonadError String m => Name () -> String -> m String
 nameStr (Ident _ str) _ = return str
 nameStr _ err = throwError $ "Expected ident name in " ++ err ++  ", but it was not that."

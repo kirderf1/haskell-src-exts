@@ -7,8 +7,8 @@ import Test.Tasty.Golden
 import Test.Tasty
 import Control.Monad.Except
 import System.FilePath
-import System.Directory (doesDirectoryExist, createDirectoryIfMissing, listDirectory)
-import System.Process     (callProcess, readProcessWithExitCode)
+import System.Directory (doesDirectoryExist, createDirectoryIfMissing, listDirectory, removeFile, removeDirectoryRecursive)
+import System.Process     (readProcessWithExitCode)
 import System.Exit
 
 
@@ -25,7 +25,7 @@ main = do
 type TestSuite = ([FilePath], [FilePath], [FilePath])
   
 testsuite :: FilePath
-testsuite = "comp-transform/testsuite/"
+testsuite = "comp-transform" </> "testsuite"
 
 groups :: [FilePath]
 groups = ["good", "unclear", "bad"]
@@ -40,10 +40,10 @@ getTestFiles dir = do
       else return []
 
 createTransformTree :: FilePath -> IO (TestTree)
-createTransformTree group = testGolden group "Transform" runTransformTest <$> getTestFiles (testsuite ++ group)    
+createTransformTree group = testGolden group "Transform" runTransformTest <$> getTestFiles (testsuite </> group)
 
 createCompileTree :: FilePath -> IO (TestTree)
-createCompileTree group = testGolden group "Compile" runTransformAndCompileTest <$> getTestFiles (testsuite ++ group) 
+createCompileTree group = testGolden group "Compile" runTransformAndCompileTest <$> getTestFiles (testsuite </> group)
 
 testGolden :: String -> String -> (FilePath -> FilePath -> IO ()) -> [FilePath] -> TestTree
 testGolden group test run files = testGroup group $ do
@@ -72,19 +72,16 @@ runTransformAndCompileTest file out = do
 runCompileTest :: FilePath -> FilePath -> IO ()
 runCompileTest file outFile = do
     -- let runFile = dropExtension file
-    let build = takeDirectory file </> "build"
-    callProcess "mkdir" ["-p", build]
+    createDirectoryIfMissing True build
     (exit,_out,_err) <- readProcessWithExitCode "ghc" ["-outputdir", build, "-o", build </> "output", file] []
     case exit of
-         ExitSuccess -> do writeFileAndCreateDirectory outFile $  "OK \n"
-                           callProcess "rm" ["-r", file, build]
+         ExitSuccess -> writeFileAndCreateDirectory outFile $  "OK \n"
          ExitFailure _ -> do 
             (exit2,_out2,err2) <- readProcessWithExitCode "ghc" ["-outputdir", build, file] []
             case exit2 of
-                ExitFailure _ -> do writeFileAndCreateDirectory outFile err2
-                                    callProcess "rm" ["-r", file, build]
-                ExitSuccess -> do writeFileAndCreateDirectory outFile $  "OK \n"
-                                  callProcess "rm" ["-r", file, build]
+                ExitFailure _ -> writeFileAndCreateDirectory outFile err2
+                ExitSuccess -> writeFileAndCreateDirectory outFile $  "OK \n"
+    cleanup
         {-    do
              (exit2,out2,err2) <- readProcessWithExitCode runFile [] []
              case exit2 of
@@ -92,6 +89,9 @@ runCompileTest file outFile = do
                   ExitSuccess -> do writeFileAndCreateDirectory outFile $  "OK \n"
                                     callProcess "rm" [file]
                                         -}
+    where
+      build = takeDirectory file </> "build"
+      cleanup = removeFile file >> removeDirectoryRecursive build
                                  
                                  
 

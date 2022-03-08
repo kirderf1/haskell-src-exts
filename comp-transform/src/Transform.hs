@@ -90,30 +90,31 @@ transformDecl d = return [d]
 transformType :: Type () -> Transform (Type ())
 transformType (TyComp _ category types) = do
     (cats, _) <- ask
+    catStr <- lift $ qNameStr "TyComp" category 
     case Map.lookup category cats of
-        Nothing -> throwError "transformType: Trying to form type of unknown category"
+        Nothing -> throwError $ "Trying to form type of unknown category: " ++ catStr
         Just pieces -> do 
-            typeNames <- mapM (lift . catName) types
-            lift $ checkInCategory pieces typeNames
+            typeNames <- mapM (lift . pieceName) types
+            lift $ checkInCategory catStr pieces typeNames
             coprodtype <- coprod types
             return $ TyApp () termName (TyParen () coprodtype)
-      where catName :: QName () -> Except String String
-            catName qnam@(Qual _ _moduleName nam) = nameStr ("TyComp with " ++ show qnam) nam
-            catName qnam@(UnQual _ nam) = nameStr ("TyComp with " ++ show qnam) nam
-            catName _ = throwError "transformType: unexpected special QName "
+      where pieceName :: QName () -> Except String String
+            pieceName qnam@(Qual _ _moduleName nam) = nameStr ("TyComp with " ++ show qnam) nam
+            pieceName qnam@(UnQual _ nam) = nameStr ("TyComp with " ++ show qnam) nam
+            pieceName _ = throwError "Unexpected special QName in part of TyComp."
 transformType t = return t
 
 -- | Transform an expression
 transformExp :: Exp () -> Transform (Exp ())
 transformExp a@(App _ (Con _ qcon) expr) = do
     (_, constrs) <- ask
-    conStr <- lift $ conName ("App with " ++ show qcon) qcon
+    conStr <- lift $ qNameStr ("App with " ++ show qcon) qcon
     if Set.member conStr constrs
         then return $ App () (Var () (UnQual () (Ident () ("i" ++ conStr)))) expr
         else return a
 transformExp a@(InfixApp _ expr1 (QConOp _ qcon) expr2) = do
     (_, constrs) <- ask
-    conStr <- lift $ conName ("InfixApp with " ++ show qcon) qcon
+    conStr <- lift $ qNameStr ("InfixApp with " ++ show qcon) qcon
     if Set.member conStr constrs
         then return $ InfixApp () expr1
             (QVarOp () (UnQual () (Ident () ("i" ++ conStr)))) expr2
@@ -236,7 +237,9 @@ buildSigPiece  ((PieceDecl _ category headName _cons _derives):decls) sig = do
     headStr <- nameStr ("PieceDecl with " ++ show headName) headName
     case Map.lookup category sig' of
         Just oldCons -> return $ Map.insert category (Set.insert headStr oldCons) sig'
-        Nothing -> throwError $ "buildSigPiece: category " ++ show category ++ " not declared."
+        Nothing -> do
+            catStr <- qNameStr ("Category in PieceDecl") category 
+            throwError $ "Category \"" ++ catStr ++ "\" not declared."
 buildSigPiece (_:decls) sig = buildSigPiece decls sig
 
 -- | Build set of all piece constructors
@@ -254,10 +257,6 @@ buildConstrs ((PieceDecl _ _category _headName cons _derives):decls) = do
           conStr err (QualConDecl _ _mForAll _mContext (RecDecl _ nam _fdecls)) = 
               nameStr err nam
 buildConstrs (_:decls) = buildConstrs decls
-
-
-
-
 
 -- | Modify a list of import declarations to add the ones needed for compdata
 modifyImports :: [ImportDecl ()] -> [ImportDecl ()]
@@ -356,11 +355,11 @@ liftSum :: Name () -> Decl ()
 liftSum className = SpliceDecl () (SpliceExp () (ParenSplice () (app (app (deriveTHListElem "derive") (List () [deriveTHListElem "liftSum"])) (List () [TypQuote () (UnQual () className)]))))
 
 -- | Check if all parts of a composition type are in the category
-checkInCategory :: Set String -> [String] -> Except String ()
-checkInCategory _ [] = return ()
-checkInCategory pieces (p:ps) = if Set.member p pieces
-    then checkInCategory pieces ps
-    else throwError $ "checkInCategory: Piece: " ++ show p ++ " not found in category"
+checkInCategory :: String -> Set String -> [String] -> Except String ()
+checkInCategory _ _ [] = return ()
+checkInCategory category pieces (p:ps) = if Set.member p pieces
+    then checkInCategory category pieces ps
+    else throwError $ "Piece: " ++ show p ++ " not found in category: " ++ category
     
     
 -- | Create instance head (roughly the first line of an instance declaration)
@@ -374,7 +373,7 @@ createInstHead funName pieceName = do
           toClassQName (UnQual _ fname) = do 
                 cname <- toClassName fname
                 return $ UnQual () cname
-          toClassQName _ = throwError "createInstHead: toClassQName: unexpected type of funtion name"
+          toClassQName _ = throwError "Unexpected special qname of function name"
 
 
 -- | Transform an instance declaration to have the function with a prime
@@ -382,7 +381,7 @@ transformInstDecl :: InstDecl () -> Transform (InstDecl ())
 transformInstDecl (InsDecl _ (FunBind () matches)) = do 
     matches' <- mapM transformMatch matches
     return $ InsDecl () (FunBind () matches')
-transformInstDecl _ = throwError "transformInstDecl: unexpected type of instance declaration"
+transformInstDecl _ = throwError "Unexpected type of instance declaration"
 -- TODO: Possibly other constructs for InstDecl
 
 -- | Transform function part of the instance declaration to have a prime on function name
@@ -397,11 +396,10 @@ transformMatch (InfixMatch _ pat funName patterns rhs maybeBinds) = do
 -- | Return string part of a name with custom error message
 nameStr :: MonadError String m => String -> Name () -> m String
 nameStr _ (Ident _ str) = return str
-nameStr err _ = throwError $ "Expected ident name in " ++ err ++  ", but it was not that."
-              
+nameStr err _ = throwError $ "Expected ident name in " ++ err ++  ", but it was not that." 
 
 -- | Return string part of QName with custom error message
-conName :: String -> QName () -> Except String String
-conName err (Qual _ _moduleName nam) = nameStr err nam
-conName err (UnQual _ nam) = nameStr err nam
-conName err _ = throwError $ "Unexpected special QName in " ++ err
+qNameStr :: String -> QName () -> Except String String
+qNameStr err (Qual _ _moduleName nam) = nameStr err nam
+qNameStr err (UnQual _ nam) = nameStr err nam
+qNameStr err _ = throwError $ "Unexpected special QName in " ++ err

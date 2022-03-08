@@ -22,15 +22,19 @@ import Control.Monad.Except
 -- | Map of category names to pieces
 type Sig = Map (QName ()) (Set String)
 
+-- | Set of all piece constructors
+type Constrs = Set String
+
 -- | Transform monad containing signature of categories and handles error messages as Strings.
-type Transform = ReaderT Sig (Except String)
+type Transform = ReaderT (Sig, Constrs) (Except String)
 
 -- | Transform a module by building signature of categories and then transforming the content of the module
 transform :: Module () -> Except String (Module ())
 transform m@(Module _ _mhead _pragmas _imports decls) = do
     sigCat <- buildSigCat decls
     sig    <- buildSigPiece decls sigCat
-    runReaderT (transformModule m) sig 
+    constrs <- buildConstrs decls
+    runReaderT (transformModule m) (sig, constrs) 
 transform _xml = throwError "transform not defined for xml formats" 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
 
@@ -41,8 +45,9 @@ transformModule m@(Module _ mhead pragmas imports decls) =
         then do
             let pragmas' = modifyPragmas pragmas
                 imports' = modifyImports imports
-            
-            mapDecl transformDecl =<< mapType transformType (Module () mhead pragmas' imports' decls)
+            mapDecl transformDecl 
+                =<< mapExp transformExp
+                =<< mapType transformType (Module () mhead pragmas' imports' decls)
         else return m
 transformModule _xml = throwError "transformModule not defined for xml formats" 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
@@ -84,7 +89,7 @@ transformDecl d = return [d]
 -- | Transform a type
 transformType :: Type () -> Transform (Type ())
 transformType (TyComp _ category types) = do
-    cats <- ask
+    (cats, _) <- ask
     case Map.lookup category cats of
         Nothing -> throwError "transformType: Trying to form type of unknown category"
         Just pieces -> do 
@@ -93,10 +98,27 @@ transformType (TyComp _ category types) = do
             coprodtype <- coprod types
             return $ TyApp () termName (TyParen () coprodtype)
       where catName :: QName () -> Except String String
-            catName qnam@(Qual _ _moduleName nam) = nameStr nam $ "TyComp with " ++ show qnam
-            catName qnam@(UnQual _ nam) = nameStr nam $ "TyComp with " ++ show qnam
+            catName qnam@(Qual _ _moduleName nam) = nameStr ("TyComp with " ++ show qnam) nam
+            catName qnam@(UnQual _ nam) = nameStr ("TyComp with " ++ show qnam) nam
             catName _ = throwError "transformType: unexpected special QName "
 transformType t = return t
+
+-- | Transform an expression
+transformExp :: Exp () -> Transform (Exp ())
+transformExp a@(App _ (Con _ qcon) expr) = do
+    (_, constrs) <- ask
+    conStr <- lift $ conName ("App with " ++ show qcon) qcon
+    if Set.member conStr constrs
+        then return $ App () (Var () (UnQual () (Ident () ("i" ++ conStr)))) expr
+        else return a
+transformExp a@(InfixApp _ expr1 (QConOp _ qcon) expr2) = do
+    (_, constrs) <- ask
+    conStr <- lift $ conName ("InfixApp with " ++ show qcon) qcon
+    if Set.member conStr constrs
+        then return $ InfixApp () expr1
+            (QVarOp () (UnQual () (Ident () ("i" ++ conStr)))) expr2
+        else return a
+transformExp e = return e
 
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 
     parameter instead of the name of the category it belongs to.
@@ -211,11 +233,31 @@ buildSigPiece :: [Decl ()] -> Sig -> Except String Sig
 buildSigPiece [] sig = return sig
 buildSigPiece  ((PieceDecl _ category headName _cons _derives):decls) sig = do
     sig' <- buildSigPiece decls sig
-    idHead <- nameStr headName ("PieceDecl with " ++ show headName)
+    headStr <- nameStr ("PieceDecl with " ++ show headName) headName
     case Map.lookup category sig' of
-        Just oldCons -> return $ Map.insert category (Set.insert idHead oldCons) sig'
+        Just oldCons -> return $ Map.insert category (Set.insert headStr oldCons) sig'
         Nothing -> throwError $ "buildSigPiece: category " ++ show category ++ " not declared."
 buildSigPiece (_:decls) sig = buildSigPiece decls sig
+
+-- | Build set of all piece constructors
+buildConstrs :: [Decl ()] -> Except String Constrs
+buildConstrs [] = return Set.empty
+buildConstrs ((PieceDecl _ _category _headName cons _derives):decls) = do
+    constrs <- buildConstrs decls
+    nameStrs <- mapM (conStr ("Constructors of PieceDecl with " ++ show cons)) cons
+    return $ foldr Set.insert constrs nameStrs
+    where conStr :: String -> QualConDecl () -> Except String String
+          conStr err (QualConDecl _ _mForAll _mContext (ConDecl _ nam _types)) =
+              nameStr err nam
+          conStr err (QualConDecl _ _mForAll _mContext (InfixConDecl _ _type nam _types)) =
+              nameStr err nam
+          conStr err (QualConDecl _ _mForAll _mContext (RecDecl _ nam _fdecls)) = 
+              nameStr err nam
+buildConstrs (_:decls) = buildConstrs decls
+
+
+
+
 
 -- | Modify a list of import declarations to add the ones needed for compdata
 modifyImports :: [ImportDecl ()] -> [ImportDecl ()]
@@ -248,12 +290,12 @@ matchImport s (ImportDecl {importModule = ModuleName _ nam}) = nam == s
 
 -- | Transform function to function name with prime
 toFuncName :: Name () -> Transform (Name ())
-toFuncName nam = (\n -> name (n ++ "'")) <$> nameStr nam ("CompFuncDecl with " ++ show nam)
+toFuncName nam = (\n -> name (n ++ "'")) <$> nameStr ("CompFuncDecl with " ++ show nam) nam
 
 -- | Transform function name to class name, with capital first letter
 toClassName :: Name () -> Transform (Name ())
 toClassName nam = do
-    str <- nameStr nam ("CompFunDecl with " ++ show nam)
+    str <- nameStr ("CompFunDecl with " ++ show nam) nam
     let (s:ss) = str
     return $ name (toUpper s : ss)
     
@@ -274,7 +316,7 @@ classFunctionDecl functionName t = ClsDecl () (TypeSig () [functionName] t)
 -- | Build function type
 transformFunType :: Name () -> Type () -> Type () -> Transform (Type ())
 transformFunType cname replType ty = do
-    sig <- ask
+    (sig, _) <- ask
     resT <- mapType (convType sig) ty
     return (TyForall () Nothing (Just (CxSingle () (ParenA () (TypeA () (TyApp () (TyCon () (UnQual () cname)) (TyVar () (name "g"))))))) resT)
   where
@@ -352,8 +394,14 @@ transformMatch (InfixMatch _ pat funName patterns rhs maybeBinds) = do
     funName' <- toFuncName funName
     return (InfixMatch () pat funName' patterns rhs maybeBinds)
     
--- | Return string part of a name    
-nameStr :: MonadError String m => Name () -> String -> m String
-nameStr (Ident _ str) _ = return str
-nameStr _ err = throwError $ "Expected ident name in " ++ err ++  ", but it was not that."
+-- | Return string part of a name with custom error message
+nameStr :: MonadError String m => String -> Name () -> m String
+nameStr _ (Ident _ str) = return str
+nameStr err _ = throwError $ "Expected ident name in " ++ err ++  ", but it was not that."
               
+
+-- | Return string part of QName with custom error message
+conName :: String -> QName () -> Except String String
+conName err (Qual _ _moduleName nam) = nameStr err nam
+conName err (UnQual _ nam) = nameStr err nam
+conName err _ = throwError $ "Unexpected special QName in " ++ err

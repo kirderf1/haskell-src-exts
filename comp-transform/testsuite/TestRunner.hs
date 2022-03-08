@@ -7,7 +7,7 @@ import Test.Tasty.Golden
 import Test.Tasty
 import Control.Monad.Except
 import System.FilePath
-import System.Directory (doesDirectoryExist, createDirectoryIfMissing, listDirectory, removeFile, removeDirectoryRecursive)
+import System.Directory (doesDirectoryExist, createDirectoryIfMissing, listDirectory, removeDirectoryRecursive)
 import System.Process     (readProcessWithExitCode)
 import System.Exit
 
@@ -31,12 +31,12 @@ groups :: [FilePath]
 groups = ["good", "unclear", "bad"]
   
 getTestFiles :: FilePath -> IO [FilePath]
-getTestFiles dir = do
-    exists <- doesDirectoryExist dir
+getTestFiles mainDir = do
+    exists <- doesDirectoryExist mainDir
     if exists
       then do
-        dirs <- getDirectories dir 
-        liftM concat $ mapM (findByExtension [".hs"])  dirs
+        dirs <- getDirectories mainDir
+        return $ map (\dir -> dir </> takeBaseName dir <.> "hs") dirs
       else return []
 
 createTransformTree :: FilePath -> IO (TestTree)
@@ -65,35 +65,24 @@ runTransformTest file out = do
 
 runTransformAndCompileTest :: FilePath -> FilePath -> IO ()
 runTransformAndCompileTest file out = do
-    let transformed = dropExtension file ++ "Transform" <.> "hs"
-    runTransformTest file transformed
-    runCompileTest transformed out
+    let dir = takeDirectory file </> "build"
+    let transformOutput = dir </> "output" <.> "hs"
+    runTransformTest file transformOutput
+    runCompileTest dir transformOutput out
+    removeDirectoryRecursive dir
                                  
-runCompileTest :: FilePath -> FilePath -> IO ()
-runCompileTest file outFile = do
+runCompileTest :: FilePath -> FilePath -> FilePath -> IO ()
+runCompileTest dir file outFile = do
     -- let runFile = dropExtension file
-    createDirectoryIfMissing True build
-    (exit,_out,_err) <- readProcessWithExitCode "ghc" ["-outputdir", build, "-o", build </> "output", file] []
+    createDirectoryIfMissing True dir
+    (exit,_out,_err) <- readProcessWithExitCode "ghc" ["-outputdir", dir, "-o", dir </> "output", file] []
     case exit of
          ExitSuccess -> writeFileAndCreateDirectory outFile $  "OK \n"
          ExitFailure _ -> do 
-            (exit2,_out2,err2) <- readProcessWithExitCode "ghc" ["-outputdir", build, file] []
+            (exit2,_out2,err2) <- readProcessWithExitCode "ghc" ["-outputdir", dir, file] []
             case exit2 of
                 ExitFailure _ -> writeFileAndCreateDirectory outFile err2
                 ExitSuccess -> writeFileAndCreateDirectory outFile $  "OK \n"
-    cleanup
-        {-    do
-             (exit2,out2,err2) <- readProcessWithExitCode runFile [] []
-             case exit2 of
-                  ExitFailure _ -> writeFileAndCreateDirectory outFile err >> callProcess "rm" [file]
-                  ExitSuccess -> do writeFileAndCreateDirectory outFile $  "OK \n"
-                                    callProcess "rm" [file]
-                                        -}
-    where
-      build = takeDirectory file </> "build"
-      cleanup = removeFile file >> removeDirectoryRecursive build
-                                 
-                                 
 
 writeFileAndCreateDirectory :: FilePath -> String -> IO ()
 writeFileAndCreateDirectory file text = do
@@ -103,5 +92,5 @@ writeFileAndCreateDirectory file text = do
     
 getDirectories :: FilePath -> IO [FilePath]
 getDirectories filePath = listDirectory filePath
-                      >>= filterM (doesDirectoryExist . (filePath </>))
                       >>= return . map (filePath </>)
+                      >>= filterM doesDirectoryExist

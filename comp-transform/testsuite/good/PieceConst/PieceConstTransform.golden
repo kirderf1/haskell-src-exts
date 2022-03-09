@@ -12,8 +12,6 @@ data Value a = Const Int
                  deriving Functor
 
 $(
-  Data.Comp.Derive.derive
-    [Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
-     Data.Comp.Derive.smartConstructors]
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors]
     [''Value]
   )

@@ -11,29 +11,20 @@ data B a = B Int
              deriving Functor
 
 $(
-  Data.Comp.Derive.derive
-    [Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
-     Data.Comp.Derive.smartConstructors]
-    [''B]
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''B]
   )
 
 data C a = C deriving Functor
 
 $(
-  Data.Comp.Derive.derive
-    [Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
-     Data.Comp.Derive.smartConstructors]
-    [''C]
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''C]
   )
 
 data D a = D a
              deriving Functor
 
 $(
-  Data.Comp.Derive.derive
-    [Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
-     Data.Comp.Derive.smartConstructors]
-    [''D]
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''D]
   )
 
 e ::

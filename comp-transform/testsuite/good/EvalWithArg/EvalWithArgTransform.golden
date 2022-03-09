@@ -12,10 +12,7 @@ data B a = C Int
              deriving Functor
 
 $(
-  Data.Comp.Derive.derive
-    [Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
-     Data.Comp.Derive.smartConstructors]
-    [''B]
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''B]
   )
 
 class Eval f where

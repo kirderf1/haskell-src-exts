@@ -13,10 +13,8 @@ data Value a = Const Int
 
 $(
   Data.Comp.Derive.derive
-    [Data.Comp.Derive.makeTraversable, Data.Comp.Derive.makeFoldable,
-     Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
-     Data.Comp.Derive.smartConstructors,
-     Data.Comp.Derive.smartAConstructors]
+    [Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
+     Data.Comp.Derive.smartConstructors]
     [''Value]
   )
 
@@ -26,10 +24,8 @@ data Op a = Add a a
 
 $(
   Data.Comp.Derive.derive
-    [Data.Comp.Derive.makeTraversable, Data.Comp.Derive.makeFoldable,
-     Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
-     Data.Comp.Derive.smartConstructors,
-     Data.Comp.Derive.smartAConstructors]
+    [Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
+     Data.Comp.Derive.smartConstructors]
     [''Op]
   )
 

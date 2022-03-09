@@ -161,8 +161,7 @@ getParName = name "a"
 
 -- | Template Haskell derive for a piece
 deriveTHPiece :: Name () -> Decl () 
-deriveTHPiece pieceName = deriveTH pieceName ["makeTraversable", "makeFoldable", "makeEqF",
-                                  "makeShowF", "smartConstructors", "smartAConstructors"]                                
+deriveTHPiece pieceName = deriveTH pieceName ["makeEqF", "makeShowF", "smartConstructors"]
 
 -- | Template Haskell derive for a certain data type from a list of things to derive
 deriveTH :: Name () -> [String] -> Decl () 

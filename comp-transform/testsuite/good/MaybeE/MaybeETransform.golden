@@ -12,10 +12,8 @@ data B a = B Int
 
 $(
   Data.Comp.Derive.derive
-    [Data.Comp.Derive.makeTraversable, Data.Comp.Derive.makeFoldable,
-     Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
-     Data.Comp.Derive.smartConstructors,
-     Data.Comp.Derive.smartAConstructors]
+    [Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
+     Data.Comp.Derive.smartConstructors]
     [''B]
   )
 
@@ -23,10 +21,8 @@ data C a = C deriving Functor
 
 $(
   Data.Comp.Derive.derive
-    [Data.Comp.Derive.makeTraversable, Data.Comp.Derive.makeFoldable,
-     Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
-     Data.Comp.Derive.smartConstructors,
-     Data.Comp.Derive.smartAConstructors]
+    [Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
+     Data.Comp.Derive.smartConstructors]
     [''C]
   )
 
@@ -35,10 +31,8 @@ data D a = D a
 
 $(
   Data.Comp.Derive.derive
-    [Data.Comp.Derive.makeTraversable, Data.Comp.Derive.makeFoldable,
-     Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
-     Data.Comp.Derive.smartConstructors,
-     Data.Comp.Derive.smartAConstructors]
+    [Data.Comp.Derive.makeEqF, Data.Comp.Derive.makeShowF,
+     Data.Comp.Derive.smartConstructors]
     [''D]
   )
 

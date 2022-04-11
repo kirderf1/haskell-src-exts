@@ -66,7 +66,11 @@ transformDecl (PieceDecl _ category headName cons derives) =
         (deriveFunctor : derives)
         : [deriveTHPiece headName])
 transformDecl (PieceCatDecl _ _) = return []
-transformDecl (CompFunDecl _ names category t) = concat <$> (declsForName `mapM` names)
+transformDecl (CompFunDecl _ names category t) = do
+    (sig, _) <- ask
+    if Map.member category sig
+      then concat <$> (declsForName `mapM` names)
+      else throwError $ "Expected first argument to be a piece category, was: \"" ++ show category ++ "\""
   where
     declsForName :: Name () -> Transform [Decl ()]
     declsForName nam = do

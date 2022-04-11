@@ -1,1 +1,1 @@
-Found category "A" in an unexpected spot in destructor "eval". Should only be allowed as first argument.
+Expected first argument to be a piece category, was: "Bool"

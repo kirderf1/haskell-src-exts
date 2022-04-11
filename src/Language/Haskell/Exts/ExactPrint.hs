@@ -937,7 +937,7 @@ instance ExactP Decl where
         exactPC ca
         printString "->"
         exactPC t
-    CompFunInst l fn pn mids -> 
+    CompFunExt l fn pn mids -> 
         case srcInfoPoints l of 
            _:pts -> do
               exactPC fn
@@ -948,7 +948,7 @@ instance ExactP Decl where
                   printStringAt (pos p) "where"
                   layoutList pts' $ sepInstFunBinds ids
                   ) mids
-           _ -> errorEP "ExactP: Decl: CompFunInst is given too few srcInfoPoints"
+           _ -> errorEP "ExactP: Decl: CompFunExt is given too few srcInfoPoints"
  
 
 

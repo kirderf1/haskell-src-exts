@@ -75,10 +75,10 @@ transformDecl (CompFunDecl _ names category t) = concat <$> (declsForName `mapM`
         classDecl <- functionClass className funcName t
         sigDecl <- functionsig nam className t
         return [classDecl, sigDecl, functionBind nam funcName, noinline nam, liftSum className]
-transformDecl (CompFunInst _ funName pieceName Nothing) = do
+transformDecl (CompFunExt _ funName pieceName Nothing) = do
     instHead <- createInstHead funName pieceName
     return [InstDecl () Nothing instHead Nothing]
-transformDecl (CompFunInst _ funName pieceName (Just instDecls)) = do 
+transformDecl (CompFunExt _ funName pieceName (Just instDecls)) = do 
     instHead <- createInstHead funName pieceName
     instDecls' <- mapM transformInstDecl instDecls
     return [InstDecl () Nothing instHead (Just instDecls')]

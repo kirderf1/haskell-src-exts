@@ -342,9 +342,9 @@ data Decl l
      | CompletePragma l [Name l] (Maybe (QName l))
      -- ^ A COMPLETE pragma
      | PieceCatDecl l (Name l)
-     | PieceDecl      l (QName l) (Name l) [QualConDecl l] [Deriving l]
-     | CompFunDecl    l [Name l] (QName l) (Type l)
-     | CompFunInst    l (QName l) (QName l) (Maybe [InstDecl l])
+     | PieceDecl    l (QName l) (Name l) [QualConDecl l] [Deriving l]
+     | CompFunDecl  l [Name l] (QName l) (Type l)
+     | CompFunExt   l (QName l) (QName l) (Maybe [InstDecl l])
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
 data  PatternSynDirection l =
@@ -1317,7 +1317,7 @@ instance Annotated Decl where
         PieceCatDecl   l _              -> l
         PieceDecl      l _ _ _ _        -> l
         CompFunDecl    l _ _ _          -> l
-        CompFunInst    l _ _ _          -> l
+        CompFunExt     l _ _ _          -> l
     amap f decl = case decl of
         TypeDecl     l dh t      -> TypeDecl    (f l) dh t
         TypeFamDecl  l dh mk mi  -> TypeFamDecl (f l) dh mk mi
@@ -1358,8 +1358,8 @@ instance Annotated Decl where
         CompletePragma   l cs ty         -> CompletePragma (f l) cs ty
         PieceCatDecl l ca                -> PieceCatDecl (f l) ca
         PieceDecl    l ca dh cds ders    -> PieceDecl (f l) ca dh cds ders
-        CompFunDecl   l ns ca t          -> CompFunDecl (f l) ns ca t
-        CompFunInst  l fn pn ins         -> CompFunInst (f l) fn pn ins
+        CompFunDecl  l ns ca t           -> CompFunDecl (f l) ns ca t
+        CompFunExt   l fn pn ins         -> CompFunExt (f l) fn pn ins
 
 instance Annotated Role where
     ann r = case r of

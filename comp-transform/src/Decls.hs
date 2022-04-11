@@ -58,7 +58,7 @@ mapDecl' f decl = f =<< case decl of
         PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh <$> (mapDecl f `mapM` cds) <*> (mapDecl f `mapM` ders)
         PieceCatDecl l ca                -> return $ PieceCatDecl l ca
         CompFunDecl  l ns ca t           -> CompFunDecl l ns ca <$> mapDecl f t
-        CompFunInst l fn pn ids          -> CompFunInst l fn pn <$> ((mapDecl f `mapM`) `mapM` ids)
+        CompFunExt   l fn pn ids         -> CompFunExt l fn pn <$> ((mapDecl f `mapM`) `mapM` ids)
 
 
 mapDecls :: (MonadError String m) => (Decl l -> m [Decl l]) -> [Decl l] -> m [Decl l]

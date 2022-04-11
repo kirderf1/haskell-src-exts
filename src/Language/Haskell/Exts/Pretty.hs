@@ -590,10 +590,10 @@ instance  Pretty (Decl l) where
                 mySep ((punctuate comma . map pretty $ nameList)
                       ++ [text "-:", pretty category, text "->", pretty qualType])
         
-        pretty (CompFunInst _ funcName pieceName Nothing) =
+        pretty (CompFunExt _ funcName pieceName Nothing) =
                         mySep ( [pretty funcName, text "for", pretty pieceName, text "where" ])
 
-        pretty (CompFunInst _ funcName pieceName mInstDecls) = 
+        pretty (CompFunExt _ funcName pieceName mInstDecls) = 
                 mySep ( [pretty funcName, text "for", pretty pieceName, text "where" ])
                 $$$ ppBody classIndent (fromMaybe [] ((ppDecls False) <$> mInstDecls ))
 

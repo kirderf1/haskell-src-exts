@@ -717,7 +717,7 @@ Requires Composable Types extension
 >                   checkEnabled ComposableTypes ;
 >                   let { (mis,ss,minf) = $4 ;
 >                         l = nIS $2 <++> $1 <> $3 <+?> minf <** ss };
->                   return $ CompFunInst l $1 $3 mis }}
+>                   return $ CompFunExt l $1 $3 mis }}
 
 >       | decl          { $1 }
 

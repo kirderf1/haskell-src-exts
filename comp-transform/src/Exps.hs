@@ -55,7 +55,7 @@ instance ExpMap Decl where
             PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh <$> (mapExp f `mapM` cds) <*> (mapExp f `mapM` ders)
             PieceCatDecl l ca                -> return $ PieceCatDecl l ca
             CompFunDecl  l ns ca t           -> CompFunDecl l ns ca <$> mapExp f t
-            CompFunInst l fn pn ids          -> CompFunInst l fn pn <$> ((mapExp f `mapM`) `mapM` ids)
+            CompFunExt   l fn pn ids         -> CompFunExt l fn pn <$> ((mapExp f `mapM`) `mapM` ids)
             
 
 instance ExpMap PatternSynDirection where

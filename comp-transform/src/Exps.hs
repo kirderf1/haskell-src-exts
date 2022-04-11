@@ -54,7 +54,7 @@ instance ExpMap Decl where
             CompletePragma   l cs ty         -> return $ CompletePragma l cs ty
             PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh <$> (mapExp f `mapM` cds) <*> (mapExp f `mapM` ders)
             PieceCatDecl l ca                -> return $ PieceCatDecl l ca
-            CompFunDecl  l ns t              -> CompFunDecl l ns <$> mapExp f t
+            CompFunDecl  l ns ca t           -> CompFunDecl l ns ca <$> mapExp f t
             CompFunInst l fn pn ids          -> CompFunInst l fn pn <$> ((mapExp f `mapM`) `mapM` ids)
             
 

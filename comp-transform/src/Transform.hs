@@ -13,7 +13,6 @@ import           Data.Map   (Map)
 import qualified Data.Map as Map
 import           Data.Set   (Set)
 import qualified Data.Set as Set
-import           Data.Maybe (fromMaybe)
 import           Data.Char (toUpper)
 
 import Control.Monad.Reader
@@ -67,7 +66,7 @@ transformDecl (PieceDecl _ category headName cons derives) =
         (deriveFunctor : derives)
         : [deriveTHPiece headName])
 transformDecl (PieceCatDecl _ _) = return []
-transformDecl (CompFunDecl _ names t) = concat <$> (declsForName `mapM` names)
+transformDecl (CompFunDecl _ names category t) = concat <$> (declsForName `mapM` names)
   where
     declsForName :: Name () -> Transform [Decl ()]
     declsForName nam = do
@@ -314,19 +313,8 @@ classFunctionDecl functionName t = ClsDecl () (TypeSig () [functionName] t)
 -- | Build function type
 transformFunType :: Name () -> Type () -> Type () -> Transform (Type ())
 transformFunType cname replType ty = do
-    (sig, _) <- ask
-    resT <- mapType (convType sig) ty
+    let resT = TyFun () replType ty
     return (TyForall () Nothing (Just (CxSingle () (ParenA () (TypeA () (TyApp () (TyCon () (UnQual () cname)) (TyVar () (name "g"))))))) resT)
-  where
-    convType sig t = return (fromMaybe t (maybeConvType sig replType t))
-
--- | Maybe convert type if it matches a piece in signature
-maybeConvType :: Sig -> Type () -> Type () -> Maybe (Type ())
-maybeConvType sig replType (TyCon _ qname) = do
-    if Map.member qname sig
-      then Just replType
-      else Nothing
-maybeConvType _ _ _ = Nothing
 
 -- | Build type for term with parametric part "g"
 termType :: Type ()

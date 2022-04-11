@@ -706,11 +706,11 @@ Requires Composable Types extension
 >                        let { l = nIS $1 <++> ann $2  } ;
 >                        return (PieceCatDecl l $2) } }
 
->       | exp0b '-:' truectype           {% do { v <- checkSigVar $1;
->                                            return $ CompFunDecl ($1 <> $3 <** [$2]) [v] $3 } }
->       | exp0b ',' vars '-:' truectype  {% do { v <- checkSigVar $1;
->                                            let {(vs,ss,_) = $3 ; l = $1 <> $5 <** ($2 : reverse ss ++ [$4]) } ;
->                                            return $ CompFunDecl l (v : reverse vs) $5 } }
+>       | exp0b '-:' qcon '->' truectype           {% do { v <- checkSigVar $1;
+>                                            return $ CompFunDecl ($1 <> $5 <** [$2, $4]) [v] $3 $5 } }
+>       | exp0b ',' vars '-:' qcon '->' truectype  {% do { v <- checkSigVar $1;
+>                                            let {(vs,ss,_) = $3 ; l = $1 <> $7 <** ($2 : reverse ss ++ [$4, $6]) } ;
+>                                            return $ CompFunDecl l (v : reverse vs) $5 $7 } }
 
 >       | qvar 'for' qcon optvaldefs
 >                {% do { 

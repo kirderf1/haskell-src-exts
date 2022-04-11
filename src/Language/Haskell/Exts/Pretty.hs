@@ -586,9 +586,9 @@ instance  Pretty (Decl l) where
         pretty (PieceCatDecl _ category) =
                 mySep ( [text "piececategory", pretty category])
 
-        pretty (CompFunDecl _ nameList qualType) =
+        pretty (CompFunDecl _ nameList category qualType) =
                 mySep ((punctuate comma . map pretty $ nameList)
-                      ++ [text "-:", pretty qualType])
+                      ++ [text "-:", pretty category, text "->", pretty qualType])
         
         pretty (CompFunInst _ funcName pieceName Nothing) =
                         mySep ( [pretty funcName, text "for", pretty pieceName, text "where" ])

@@ -940,6 +940,7 @@ instance ExactP Decl where
     CompFunExt l fn pn mids -> 
         case srcInfoPoints l of 
            _:pts -> do
+              printString "ext"
               exactPC fn
               printString "for"
               exactPC pn

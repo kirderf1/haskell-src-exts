@@ -225,6 +225,7 @@ data Token
         | KW_Piece
         | KW_PieceCategory
         | KW_For
+        | KW_Ext
         | ExtraArrow
         | MinusColon
 
@@ -322,7 +323,8 @@ reserved_ids = [
 -- Composable types
   ( "piece",   (KW_Piece,    Just (Any [ComposableTypes])) ), 
   ( "piececategory",     (KW_PieceCategory,      Just (Any [ComposableTypes])) ),
-  ( "for",     (KW_For,     Just (Any [ComposableTypes])) )
+  ( "for",     (KW_For,     Just (Any [ComposableTypes])) ),
+  ( "ext",     (KW_Ext,     Just (Any [ComposableTypes])) )
 
  ]
 
@@ -1505,6 +1507,7 @@ showToken t = case t of
   KW_Piece      -> "piece"
   KW_PieceCategory -> "piececategory"
   KW_For        -> "for"
+  KW_Ext        -> "ext"
   ExtraArrow    -> "==>"
   MinusColon    -> "-:"
 

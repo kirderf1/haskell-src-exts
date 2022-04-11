@@ -19,16 +19,16 @@ stringifyE -: Exp -> String
 data Assign exp stmt
 
 --instance (StringifyS stmt, StringifyE exp) => StringifyS (Assign exp stmt) where
-stringifyS for Assign with stringifyE for Exp where
+ext stringifyS for Assign with stringifyE for Exp where
     stringifyS (Assign var exp) = var ++ " = " ++ stringifyE exp
-stringifyS for If with stringifyE for Exp where
+ext stringifyS for If with stringifyE for Exp where
     stringifyS (If exp stmt) = "if (" ++ stringifyE exp ++ ") " ++ stringifyS stmt
 
-stringifyE for Literal where
+ext stringifyE for Literal where
     stringifyE (BoolLit b) = show b
     stringifyE (StringLit s) = s
 
-stringifyE for Literal where
+ext stringifyE for Literal where
     stringifyE (And left right) = stringifyE left ++ " && " ++ stringifyE right
     stringifyE (Or left right) = stringifyE left ++ " || " ++ stringifyE right
 

@@ -270,8 +270,9 @@ Reserved Ids
 >       'anyclass'      { Loc $$ KW_Anyclass } -- for DerivingStrategies extension
 >       'via'           { Loc $$ KW_Via }      -- for DerivingStrategies extension
 >       'piece'         { Loc $$ KW_Piece }    -- for ComposableTypes
->       'piececategory'  { Loc $$ KW_PieceCategory} -- for ComposableTypes
->       'for'           {Loc $$ KW_For} -- for ComposableTypes
+>       'piececategory' { Loc $$ KW_PieceCategory } -- for ComposableTypes
+>       'for'           { Loc $$ KW_For } -- for ComposableTypes
+>       'ext'           { Loc $$ KW_Ext } -- for ComposableTypes
 
 Pragmas
 
@@ -712,12 +713,12 @@ Requires Composable Types extension
 >                                            let {(vs,ss,_) = $3 ; l = $1 <> $7 <** ($2 : reverse ss ++ [$4, $6]) } ;
 >                                            return $ CompFunDecl l (v : reverse vs) $5 $7 } }
 
->       | qvar 'for' qcon optvaldefs
+>       | 'ext' qvar 'for' qcon optvaldefs
 >                {% do { 
 >                   checkEnabled ComposableTypes ;
->                   let { (mis,ss,minf) = $4 ;
->                         l = nIS $2 <++> $1 <> $3 <+?> minf <** ss };
->                   return $ CompFunExt l $1 $3 mis }}
+>                   let { (mis,ss,minf) = $5 ;
+>                         l = nIS $1 <++> nIS $3 <++> $2 <> $4 <+?> minf <** ss };
+>                   return $ CompFunExt l $2 $4 mis }}
 
 >       | decl          { $1 }
 

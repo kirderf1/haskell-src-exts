@@ -299,7 +299,7 @@ checkAsst asst =
 
 
 checkDataHeader :: PType L -> P (Maybe (S.Context L), DeclHead L)
-checkDataHeader (TyForall _ Nothing cs t) = do
+checkDataHeader (TyForall _ Nothing Nothing cs t) = do
     dh <- checkSimple "data/newtype" t
     cs' <- checkContext cs
     return (cs',dh)
@@ -308,7 +308,7 @@ checkDataHeader t = do
     return (Nothing,dh)
 
 checkClassHeader :: PType L -> P (Maybe (S.Context L), DeclHead L)
-checkClassHeader (TyForall _ Nothing cs t) = do
+checkClassHeader (TyForall _ Nothing Nothing cs t) = do
     checkMultiParam t
     dh <- checkSimple "class" t
     cs' <- checkSContext cs
@@ -320,7 +320,7 @@ checkClassHeader t = do
 
 -- for Composable types pieces
 checkPieceHeader :: PType L -> P (Maybe (S.Context L), DeclHead L)
-checkPieceHeader (TyForall _ Nothing cs t) = do
+checkPieceHeader (TyForall _ Nothing Nothing cs t) = do
     dh <- checkSimple "piece" t
     cs' <- checkContext cs
     return (cs',dh)
@@ -371,7 +371,7 @@ toTyVarBind (TyKind l (TyVar _ n) k) = KindedVar l n k
 
 checkInstHeader :: PType L -> P (InstRule L)
 checkInstHeader (TyParen l t) = checkInstHeader t >>= return . IParen l
-checkInstHeader (TyForall l mtvs cs t) = do
+checkInstHeader (TyForall l mtvs Nothing cs t) = do
     cs' <- checkSContext cs
     checkMultiParam t
     checkInsts (Just l) mtvs cs' t
@@ -1095,14 +1095,14 @@ checkType t = checkT t False
 
 checkT :: PType L -> Bool -> P (S.Type L)
 checkT t simple = case t of
-    TyForall l Nothing cs pt    -> do
+    TyForall l Nothing Nothing cs pt    -> do
             when simple $ checkEnabled ExplicitForAll
             ctxt <- checkContext cs
-            check1Type pt (S.TyForall l Nothing ctxt)
-    TyForall l tvs cs pt -> do
+            check1Type pt (S.TyForall l Nothing Nothing ctxt)
+    TyForall l tvs Nothing cs pt -> do
             checkEnabled ExplicitForAll
             ctxt <- checkContext cs
-            check1Type pt (S.TyForall l tvs ctxt)
+            check1Type pt (S.TyForall l tvs Nothing ctxt)
     TyStar  l         -> return $ S.TyStar l
     TyFun   l at rt   -> check2Types at rt (S.TyFun l)
     TyTuple l b pts   -> checkTypes pts >>= return . S.TyTuple l b
@@ -1211,12 +1211,12 @@ mkDVar = intercalate "-"
 -- Combine adjacent for-alls.
 --
 -- A valid type must have one for-all at the top of the type, or of the fn arg types
-
-mkTyForall :: L -> Maybe [TyVarBind L] -> Maybe (PContext L) -> PType L -> PType L
-mkTyForall l mtvs ctxt ty =
+-- TODO: add parts for constraint
+mkTyForall :: L -> Maybe [TyVarBind L] -> Maybe [Constraint L] -> Maybe (PContext L) -> PType L -> PType L
+mkTyForall l mtvs mcs ctxt ty =
     case (ctxt, ty) of
-        (Nothing, TyForall _ Nothing ctxt2 ty2) -> TyForall l mtvs ctxt2 ty2
-        _                                       -> TyForall l mtvs ctxt ty
+        (Nothing, TyForall _ Nothing Nothing ctxt2 ty2) -> TyForall l mtvs mcs ctxt2 ty2
+        _                                               -> TyForall l mtvs mcs ctxt ty
 
 -- Make a role annotation
 

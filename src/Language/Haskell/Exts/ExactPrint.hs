@@ -1076,7 +1076,7 @@ instance ExactP TyVarBind where
 
 instance ExactP Type where
   exactP t' = case t' of
-    TyForall l mtvs mctxt t -> do
+    TyForall l mtvs mcs mctxt t -> do
         let pts = srcInfoPoints l
         _ <- case mtvs of
                 Nothing -> return pts
@@ -1088,6 +1088,7 @@ instance ExactP Type where
                         printStringAt (pos b) "."
                         return pts'
                      _ -> errorEP "ExactP: Type: TyForall is given too few srcInfoPoints"
+        maybeEP exactPC mcs
         maybeEP exactPC mctxt
         exactPC t
     TyStar  _ -> printString "*"

@@ -66,6 +66,7 @@ module Language.Haskell.Exts.Syntax (
     Context(..), FunDep(..), Asst(..),
     -- * Types
     Type(..), Boxed(..), Kind, TyVarBind(..), Promoted(..),
+    Constraint(..),
     TypeEqn (..),
     -- * Expressions
     Exp(..), Stmt(..), QualStmt(..), FieldUpdate(..),
@@ -633,6 +634,7 @@ data GuardedRhs l
 data Type l
      = TyForall l
         (Maybe [TyVarBind l])
+        (Maybe [Constraint l])
         (Maybe (Context l))
         (Type l)                                -- ^ qualified type
      | TyStar  l                                -- ^ @*@, the type of types
@@ -654,9 +656,17 @@ data Type l
      | TyBang l (BangType l) (Unpackedness l) (Type l)           -- ^ Strict type marked with \"@!@\" or type marked with UNPACK pragma.
      | TyWildCard l (Maybe (Name l))            -- ^ Either an anonymous of named type wildcard
      | TyQuasiQuote l String String             -- ^ @[$/name/| /string/ |]@
-     | TyComp l (QName l) [QName l]               -- ^ Type  composition, e.g. C ==> (A, B)
+     | TyComp l (QName l) [QName l]             -- ^ Type  composition, e.g. C ==> (A, B)
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
+  
+data Constraint l
+    = FunConstraint l (QName l) (Type l)        -- ^ Function constraint, e.g. f for a
+    | PieceConstraint l (QName l) (Type l)      -- ^ Piece constraint, e.g. A in a
+    | CategoryConstraint l (QName l) (Type l)   -- ^ Category constraint, e.g. A ==> a
+  deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
+
+  
 data MaybePromotedName l = PromotedName l (QName l) | UnpromotedName l (QName l)
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
@@ -1514,7 +1524,7 @@ instance Annotated GuardedRhs where
 
 instance Annotated Type where
     ann t = case t of
-      TyForall l _ _ _              -> l
+      TyForall l _ _ _ _            -> l
       TyStar  l                     -> l
       TyFun   l _ _                 -> l
       TyTuple l _ _                 -> l
@@ -1535,7 +1545,7 @@ instance Annotated Type where
       TyQuasiQuote l _ _            -> l
       TyComp l _ _                  -> l
     amap f t1 = case t1 of
-      TyForall l mtvs mcx t         -> TyForall (f l) mtvs mcx t
+      TyForall l mtvs mcs mcx t     -> TyForall (f l) mtvs mcs mcx t
       TyStar  l                     -> TyStar (f l)
       TyFun   l t1' t2              -> TyFun (f l) t1' t2
       TyTuple l b ts                -> TyTuple (f l) b ts
@@ -1555,6 +1565,16 @@ instance Annotated Type where
       TyWildCard l n                -> TyWildCard (f l) n
       TyQuasiQuote l n s            -> TyQuasiQuote (f l) n s
       TyComp l c t                  -> TyComp (f l) c t
+      
+instance Annotated Constraint where
+    ann c = case c of
+      FunConstraint l _ _           -> l
+      PieceConstraint l _ _         -> l
+      CategoryConstraint l _ _      -> l
+    amap f c = case c of
+      FunConstraint l qn t          -> FunConstraint (f l) qn t
+      PieceConstraint l qn t        -> PieceConstraint (f l) qn t
+      CategoryConstraint l qn t     -> CategoryConstraint (f l) qn t
 
 instance Annotated MaybePromotedName where
   ann t = case t of

@@ -1,0 +1,22 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleContexts #-}
+module EvalPrim where
+import qualified Data.Comp
+import qualified Data.Comp.Derive
+import qualified Data.Comp.Show ()
+import qualified Data.Comp.Equality ()
+
+class Eval f where
+        eval' :: (Eval g) => f (Data.Comp.Term g) -> Bool -> String
+
+eval :: (Eval g) => Data.Comp.Term g -> Bool -> String
+eval = eval' . Data.Comp.unTerm
+
+{-# NOINLINE eval #-}
+
+$( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''Eval] )
+
+eval2 :: Eval a => Data.Comp.Term a -> String
+eval2 a = eval a False

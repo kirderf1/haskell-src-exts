@@ -2246,11 +2246,11 @@ Context with constraints for composable types
 >       | constraint                    { ([$1] , []) }
 
 > constraint :: { Constraint L }
->       : qcon 'for' con        {% do { let { l = ann $1 <++> nIS $2 <++> ann $3 } ;
+>       : qvar 'for' var        {% do { let { l = ann $1 <++> nIS $2 <++> ann $3 } ;
 >                                       return (FunConstraint l $1 $3) } }
->       | qcon 'in' con         {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
+>       | qcon 'in' var         {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
 >                                       return (PieceConstraint l $1 $3) } }
->       | qcon '==>' con        {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
+>       | qcon '==>' var        {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
 >                                       return (CategoryConstraint l $1 $3) } }
 
 

@@ -293,7 +293,7 @@ checkAsst asst =
       ParenA l a      -> do
                 a' <- checkAsst a
                 return $ S.ParenA l a'
-
+                
 -----------------------------------------------------------------------------
 -- Checking Headers
 
@@ -1095,14 +1095,14 @@ checkType t = checkT t False
 
 checkT :: PType L -> Bool -> P (S.Type L)
 checkT t simple = case t of
-    TyForall l Nothing Nothing cs pt    -> do
+    TyForall l Nothing ccx cs pt    -> do
             when simple $ checkEnabled ExplicitForAll
             ctxt <- checkContext cs
-            check1Type pt (S.TyForall l Nothing Nothing ctxt)
-    TyForall l tvs Nothing cs pt -> do
+            check1Type pt (S.TyForall l Nothing ccx ctxt)         
+    TyForall l tvs ccx cs pt -> do
             checkEnabled ExplicitForAll
             ctxt <- checkContext cs
-            check1Type pt (S.TyForall l tvs Nothing ctxt)
+            check1Type pt (S.TyForall l tvs ccx ctxt)
     TyStar  l         -> return $ S.TyStar l
     TyFun   l at rt   -> check2Types at rt (S.TyFun l)
     TyTuple l b pts   -> checkTypes pts >>= return . S.TyTuple l b

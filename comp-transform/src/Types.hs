@@ -148,7 +148,7 @@ instance TypeMap GuardedRhs where
 
 instance TypeMap Type where
     mapType f t1 = f =<< case t1 of
-          TyForall l mtvs mcx t         -> TyForall l <$> ((mapType f `mapM`) `mapM` mtvs) <*> (mapType f `mapM` mcx) <*> mapType f t
+          TyForall l mtvs mccx mcx t    -> TyForall l <$> ((mapType f `mapM`) `mapM` mtvs) <*> return mccx <*> (mapType f `mapM` mcx) <*> mapType f t
           TyStar  l                     -> return $ TyStar l
           TyFun   l t1' t2              -> TyFun l <$> mapType f t1' <*> mapType f t2
           TyTuple l b ts                -> TyTuple l b <$> (mapType f `mapM` ts)

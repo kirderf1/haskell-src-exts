@@ -301,7 +301,7 @@ instance Annotated PContext where
 data PType l
      = TyForall l
         (Maybe [TyVarBind l])
-        (Maybe [Constraint l])
+        (Maybe (CompContext l))
         (Maybe (PContext l))
         (PType l)
      | TyStar  l                                -- ^ @*@, the type of types

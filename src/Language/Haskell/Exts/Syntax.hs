@@ -66,7 +66,7 @@ module Language.Haskell.Exts.Syntax (
     Context(..), FunDep(..), Asst(..),
     -- * Types
     Type(..), Boxed(..), Kind, TyVarBind(..), Promoted(..),
-    Constraint(..),
+    CompContext(..), Constraint(..),
     TypeEqn (..),
     -- * Expressions
     Exp(..), Stmt(..), QualStmt(..), FieldUpdate(..),
@@ -634,7 +634,7 @@ data GuardedRhs l
 data Type l
      = TyForall l
         (Maybe [TyVarBind l])
-        (Maybe [Constraint l])
+        (Maybe (CompContext l))
         (Maybe (Context l))
         (Type l)                                -- ^ qualified type
      | TyStar  l                                -- ^ @*@, the type of types
@@ -659,11 +659,16 @@ data Type l
      | TyComp l (QName l) [QName l]             -- ^ Type  composition, e.g. C ==> (A, B)
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
-  
+data CompContext l
+    = CompCxSingle l (Constraint l)
+    | CompCxTuple  l [Constraint l]
+    | CompCxEmpty  l
+  deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
+    
 data Constraint l
-    = FunConstraint l (QName l) (Type l)        -- ^ Function constraint, e.g. f for a
-    | PieceConstraint l (QName l) (Type l)      -- ^ Piece constraint, e.g. A in a
-    | CategoryConstraint l (QName l) (Type l)   -- ^ Category constraint, e.g. A ==> a
+    = FunConstraint l (QName l) (Name l)        -- ^ Function constraint, e.g. f for a
+    | PieceConstraint l (QName l) (Name l)      -- ^ Piece constraint, e.g. A in a
+    | CategoryConstraint l (QName l) (Name l)   -- ^ Category constraint, e.g. A ==> a
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
   
@@ -1565,6 +1570,16 @@ instance Annotated Type where
       TyWildCard l n                -> TyWildCard (f l) n
       TyQuasiQuote l n s            -> TyQuasiQuote (f l) n s
       TyComp l c t                  -> TyComp (f l) c t
+
+instance Annotated CompContext where
+    ann c = case c of 
+      CompCxSingle l _              -> l
+      CompCxTuple l _               -> l
+      CompCxEmpty l                 -> l
+    amap f c = case c of
+      CompCxSingle l cn             -> CompCxSingle (f l) cn
+      CompCxTuple l cn              -> CompCxTuple (f l) cn
+      CompCxEmpty l                 -> CompCxEmpty (f l)
       
 instance Annotated Constraint where
     ann c = case c of

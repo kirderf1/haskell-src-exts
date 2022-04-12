@@ -148,7 +148,7 @@ instance ExpMap GuardedRhs where
 
 instance ExpMap Type where
     mapExp f t1 = case t1 of
-          TyForall l mtvs mcx t         -> TyForall l <$> ((mapExp f `mapM`) `mapM` mtvs) <*> (mapExp f `mapM` mcx) <*> mapExp f t
+          TyForall l mtvs mccx mcx t    -> TyForall l <$> ((mapExp f `mapM`) `mapM` mtvs) <*> return mccx <*> (mapExp f `mapM` mcx) <*> mapExp f t
           TyStar  l                     -> return $ TyStar l
           TyFun   l t1' t2              -> TyFun l <$> mapExp f t1' <*> mapExp f t2
           TyTuple l b ts                -> TyTuple l b <$> (mapExp f `mapM` ts)

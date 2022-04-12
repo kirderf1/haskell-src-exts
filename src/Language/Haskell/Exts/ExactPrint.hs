@@ -1076,7 +1076,7 @@ instance ExactP TyVarBind where
 
 instance ExactP Type where
   exactP t' = case t' of
-    TyForall l mtvs mcs mctxt t -> do
+    TyForall l mtvs mccx mctxt t -> do
         let pts = srcInfoPoints l
         _ <- case mtvs of
                 Nothing -> return pts
@@ -1088,7 +1088,7 @@ instance ExactP Type where
                         printStringAt (pos b) "."
                         return pts'
                      _ -> errorEP "ExactP: Type: TyForall is given too few srcInfoPoints"
-        maybeEP exactPC mcs
+        maybeEP exactPC mccx
         maybeEP exactPC mctxt
         exactPC t
     TyStar  _ -> printString "*"
@@ -1156,6 +1156,12 @@ instance ExactP Type where
         exactP cat
         printString "==>"
         parenList (srcInfoPoints l) pieces
+        
+instance ExactP CompContext where
+    exactP _ = errorEP "ExactP: Instance not written for CompContext"
+    
+instance ExactP Constraint where 
+    exactP _ = errorEP "ExactP: Instance not written for Constraint"
         
 
 instance ExactP MaybePromotedName where

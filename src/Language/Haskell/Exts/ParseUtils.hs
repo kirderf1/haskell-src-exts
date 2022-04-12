@@ -1211,12 +1211,12 @@ mkDVar = intercalate "-"
 -- Combine adjacent for-alls.
 --
 -- A valid type must have one for-all at the top of the type, or of the fn arg types
--- TODO: add parts for constraint
-mkTyForall :: L -> Maybe [TyVarBind L] -> Maybe [Constraint L] -> Maybe (PContext L) -> PType L -> PType L
-mkTyForall l mtvs mcs ctxt ty =
-    case (ctxt, ty) of
-        (Nothing, TyForall _ Nothing Nothing ctxt2 ty2) -> TyForall l mtvs mcs ctxt2 ty2
-        _                                               -> TyForall l mtvs mcs ctxt ty
+mkTyForall :: L -> Maybe [TyVarBind L] -> Maybe (CompContext L) -> Maybe (PContext L) -> PType L -> PType L
+mkTyForall l mtvs mccx ctxt ty =
+    case (mccx, ctxt, ty) of
+        (Nothing, Nothing, TyForall _ Nothing mccx2 ctxt2 ty2) -> TyForall l mtvs mccx2 ctxt2 ty2
+        (_, Nothing, TyForall _ Nothing Nothing ctxt2 ty2) -> TyForall l mtvs mccx ctxt2 ty2
+        _                                               -> TyForall l mtvs mccx ctxt ty
 
 -- Make a role annotation
 

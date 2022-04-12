@@ -318,7 +318,7 @@ classFunctionDecl functionName t = ClsDecl () (TypeSig () [functionName] t)
 transformFunType :: Name () -> Type () -> Type () -> Transform (Type ())
 transformFunType cname replType ty = do
     let resT = TyFun () replType ty
-    return (TyForall () Nothing (Just (CxSingle () (ParenA () (TypeA () (TyApp () (TyCon () (UnQual () cname)) (TyVar () (name "g"))))))) resT)
+    return (TyForall () Nothing Nothing (Just (CxSingle () (ParenA () (TypeA () (TyApp () (TyCon () (UnQual () cname)) (TyVar () (name "g"))))))) resT)
 
 -- | Build type for term with parametric part "g"
 termType :: Type ()

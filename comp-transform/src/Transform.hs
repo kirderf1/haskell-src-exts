@@ -159,7 +159,7 @@ deriveFunctor =
 -- | Get a name for the parametrized variable.            
 -- TODO: Figure out how to handle unique names for parametrize variables
 getParName :: Name ()
-getParName = name "a"
+getParName = name "composable_types_recursive_var"
 
 
 -- | Template Haskell derive for a piece

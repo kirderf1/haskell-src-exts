@@ -306,7 +306,7 @@ functionClass :: Name () -> Name () -> Type () -> Transform (Decl ())
 functionClass className functionName t = do
     funType <- transformFunType className (TyApp () (TyVar () (name "f")) (TyParen () termType)) t
     return $ ClassDecl () Nothing
-        (buildType $ collectVars t) []
+        (buildType $ collectUniqueVars t) []
         (Just [classFunctionDecl functionName funType])
   where
     buildType []         = DHApp () (DHead () className) (UnkindedVar () (name "f"))
@@ -321,7 +321,7 @@ classFunctionDecl functionName t = ClsDecl () (TypeSig () [functionName] t)
 transformFunType :: Name () -> Type () -> Type () -> Transform (Type ())
 transformFunType cname replType ty = do
     let resT = TyFun () replType ty
-    return (TyForall () Nothing (Just (CxSingle () (ParenA () (TypeA () (buildType $ collectVars ty))))) resT)
+    return (TyForall () Nothing (Just (CxSingle () (ParenA () (TypeA () (buildType $ collectUniqueVars ty))))) resT)
   where
     buildType []         = TyApp () (TyCon () (UnQual () cname)) (TyVar () (name "g"))
     buildType (var:vars) = TyApp () (buildType vars) (TyVar () var)
@@ -400,6 +400,15 @@ qNameStr :: String -> QName () -> Except String String
 qNameStr err (Qual _ _moduleName nam) = nameStr err nam
 qNameStr err (UnQual _ nam) = nameStr err nam
 qNameStr err _ = throwError $ "Unexpected special QName in " ++ err
+
+collectUniqueVars :: Type () -> [Name ()]
+collectUniqueVars = removeDups Set.empty . collectVars
+  where
+    removeDups _   []         = []
+    removeDups set (var:vars) =
+      if Set.member var set
+        then removeDups set vars
+        else var : removeDups (Set.insert var set) vars
 
 class WithVar a where
     collectVars :: a l -> [Name l]

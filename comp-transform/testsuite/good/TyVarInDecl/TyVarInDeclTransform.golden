@@ -2,14 +2,15 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module ContextInExt where
 import qualified Data.Comp
 import qualified Data.Comp.Derive
 import qualified Data.Comp.Show ()
 import qualified Data.Comp.Equality ()
 
-data B a = C a
-             deriving Functor
+data B a = C deriving Functor
 
 $(
   Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''B]
@@ -24,4 +25,3 @@ d = d' . Data.Comp.unTerm
 {-# NOINLINE d #-}
 
 $( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''D] )
-

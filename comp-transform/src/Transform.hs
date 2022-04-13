@@ -127,6 +127,20 @@ transformExp a@(InfixApp _ expr1 (QConOp _ qcon) expr2) = do
         then return $ InfixApp () expr1
             (QVarOp () (UnQual () (Ident () ("i" ++ conStr)))) expr2
         else return a
+transformExp a@(LeftSection _ expr (QConOp _ qcon)) = do
+    (_, constrs) <- ask
+    conStr <- lift $ qNameStr ("LeftSection with " ++ show qcon) qcon
+    if Set.member conStr constrs
+        then return $ LeftSection () expr
+            (QVarOp () (UnQual () (Ident () ("i" ++ conStr))))
+        else return a
+transformExp a@(RightSection _ (QConOp _ qcon) expr) = do
+    (_, constrs) <- ask
+    conStr <- lift $ qNameStr ("LeftSection with " ++ show qcon) qcon
+    if Set.member conStr constrs
+        then return $ RightSection ()
+            (QVarOp () (UnQual () (Ident () ("i" ++ conStr)))) expr
+        else return a
 transformExp e = return e
 
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 

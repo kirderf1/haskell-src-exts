@@ -10,13 +10,15 @@ import qualified Data.Comp.Derive
 import qualified Data.Comp.Show ()
 import qualified Data.Comp.Equality ()
 
-data B composable_types_recursive_var = B Bool Bool deriving Functor
+data B composable_types_recursive_var = B Bool Bool
+                                          deriving Functor
 
 $(
-  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''Op]
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''B]
   )
 
-c :: Term B
+c :: Data.Comp.Term (B)
 c = (`iB` True) False
-d :: Term B
+
+d :: Data.Comp.Term (B)
 d = (True `iB`) False

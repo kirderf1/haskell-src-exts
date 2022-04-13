@@ -13,8 +13,8 @@ import qualified Data.Comp.Equality ()
 data B composable_types_recursive_var = B deriving Functor
 
 $(
-  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''Op]
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''B]
   )
 
-c :: Term B
+c :: Data.Comp.Term (B)
 c = iB

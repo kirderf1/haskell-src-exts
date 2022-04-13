@@ -55,7 +55,7 @@ instance ExpMap Decl where
             PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh <$> (mapExp f `mapM` cds) <*> (mapExp f `mapM` ders)
             PieceCatDecl l ca                -> return $ PieceCatDecl l ca
             CompFunDecl  l ns ca t           -> CompFunDecl l ns ca <$> mapExp f t
-            CompFunExt   l fn pn ids         -> CompFunExt l fn pn <$> ((mapExp f `mapM`) `mapM` ids)
+            CompFunExt   l mtv mccx mcx fn pn ids  -> CompFunExt l <$> ((mapExp f `mapM`) `mapM` mtv) <*> return mccx <*> (mapExp f `mapM` mcx) <*> return fn <*> return pn <*> ((mapExp f `mapM`) `mapM` ids)
             
 
 instance ExpMap PatternSynDirection where
@@ -82,8 +82,8 @@ instance ExpMap DeclHead where
     mapExp f (DHApp l dh t)        = DHApp l <$> mapExp f dh <*> mapExp f t
 
 instance ExpMap InstRule where
-    mapExp f (IRule l mtv cxt qn) = IRule l <$> ((mapExp f `mapM`) `mapM` mtv) <*> (mapExp f `mapM` cxt) <*> mapExp f qn
-    mapExp f (IParen l ih)        = IParen l <$> mapExp f ih
+    mapExp f (IRule l mtv mccx cxt qn) = IRule l <$> ((mapExp f `mapM`) `mapM` mtv) <*> return mccx <*> (mapExp f `mapM` cxt) <*> mapExp f qn
+    mapExp f (IParen l ih)             = IParen l <$> mapExp f ih
 
 instance ExpMap InstHead where
     mapExp _ (IHCon l n)           = return $ IHCon l n

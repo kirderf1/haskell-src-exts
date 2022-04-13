@@ -55,7 +55,7 @@ instance TypeMap Decl where
             PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh <$> (mapType f `mapM` cds) <*> (mapType f `mapM` ders)
             PieceCatDecl l ca                -> return $ PieceCatDecl l ca
             CompFunDecl  l ns ca t           -> CompFunDecl l ns ca <$> mapType f t
-            CompFunExt   l fn pn ids         -> CompFunExt l fn pn <$> ((mapType f `mapM`) `mapM` ids)
+            CompFunExt   l mtv mccx mcx fn pn ids  -> CompFunExt l <$> ((mapType f `mapM`) `mapM` mtv) <*> return mccx <*> (mapType f `mapM` mcx) <*> return fn <*> return pn <*> ((mapType f `mapM`) `mapM` ids)
             
 
 instance TypeMap PatternSynDirection where
@@ -82,8 +82,8 @@ instance TypeMap DeclHead where
     mapType f (DHApp l dh t)        = DHApp l <$> mapType f dh <*> mapType f t
 
 instance TypeMap InstRule where
-    mapType f (IRule l mtv cxt qn) = IRule l <$> ((mapType f `mapM`) `mapM` mtv) <*> (mapType f `mapM` cxt) <*> mapType f qn
-    mapType f (IParen l ih)        = IParen l <$> mapType f ih
+    mapType f (IRule l mtv mccx cxt qn) = IRule l <$> ((mapType f `mapM`) `mapM` mtv) <*> return mccx <*> (mapType f `mapM` cxt) <*> mapType f qn
+    mapType f (IParen l ih)             = IParen l <$> mapType f ih
 
 instance TypeMap InstHead where
     mapType _ (IHCon l n)           = return $ IHCon l n

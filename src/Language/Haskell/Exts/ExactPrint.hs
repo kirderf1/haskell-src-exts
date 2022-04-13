@@ -937,10 +937,23 @@ instance ExactP Decl where
         exactPC ca
         printString "->"
         exactPC t
-    CompFunExt l fn pn mids -> 
+    CompFunExt l mtvs mccx mcx fn pn mids -> 
         case srcInfoPoints l of 
            _:pts -> do
               printString "ext"
+              let pts2 = srcInfoPoints l
+              _ <- case mtvs of
+                Nothing -> return pts2
+                Just tvs ->
+                    case pts2 of
+                     [a,b] -> do
+                        printStringAt (pos a) "forall"
+                        mapM_ exactPC tvs
+                        printStringAt (pos b) "."
+                        return pts2
+                     _ -> errorEP "ExactP: Decl: CompFunExt is given too few srcInfoPoints"
+              maybeEP exactPC mccx
+              maybeEP exactPC mcx
               exactPC fn
               printString "for"
               exactPC pn
@@ -1026,7 +1039,7 @@ instance ExactP DeclHead where
 
 instance ExactP InstRule where
   exactP ih' = case ih' of
-    IRule l mtvs mctxt qn    -> do
+    IRule l mtvs mccx mctxt qn    -> do
         let pts = srcInfoPoints l
         _ <- case mtvs of
                 Nothing -> return pts
@@ -1038,6 +1051,7 @@ instance ExactP InstRule where
                         printStringAt (pos b) "."
                         return pts
                      _ -> errorEP "ExactP: InstRule: IRule is given too few srcInfoPoints"
+        maybeEP exactPC mccx
         maybeEP exactPC mctxt
         exactPC qn
     IParen l ih        ->

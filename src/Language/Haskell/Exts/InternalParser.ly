@@ -713,12 +713,13 @@ Requires Composable Types extension
 >                                            let {(vs,ss,_) = $3 ; l = $1 <> $7 <** ($2 : reverse ss ++ [$4, $6]) } ;
 >                                            return $ CompFunDecl l (v : reverse vs) $5 $7 } }
 
->       | 'ext' qvar 'for' qcon optvaldefs
+>       | 'ext' ctype 'for' qcon optvaldefs
 >                {% do { 
 >                   checkEnabled ComposableTypes ;
+>                   (fa, ccx, cx, fn) <- checkCompFunExt $2 ;
 >                   let { (mis,ss,minf) = $5 ;
->                         l = nIS $1 <++> nIS $3 <++> $2 <> $4 <+?> minf <** ss };
->                   return $ CompFunExt l $2 $4 mis }}
+>                         l = nIS $1 <++> nIS $3 <++> ann $4 <+?> minf <** ss };
+>                   return $ CompFunExt l fa ccx cx fn $4 mis }}
 
 >       | decl          { $1 }
 
@@ -1282,7 +1283,7 @@ as qcon and then check separately that they are truly unqualified.
 >       : qconid                        { IHCon (ann $1) $1 }
 
 > deriv_clause_types :: { ([InstRule L], SrcSpan, [SrcSpan]) }
->       : qtycls1                       { [IRule (ann $1) Nothing Nothing $1], srcInfoSpan (ann $1), [] }
+>       : qtycls1                       { [IRule (ann $1) Nothing Nothing Nothing $1], srcInfoSpan (ann $1), [] }
 >       | '(' ')'                       { [], $2, [$1, $2] }
 >       | '(' dclasses ')'              { case fst $2 of
 >                                           [ts] -> ([IParen ($1 <^^> $3 <** [$1,$3]) ts], $3, [])

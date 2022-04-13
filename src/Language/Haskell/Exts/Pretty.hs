@@ -590,17 +590,21 @@ instance  Pretty (Decl l) where
                 mySep ((punctuate comma . map pretty $ nameList)
                       ++ [text "-:", pretty category, text "->", pretty qualType])
         
-        pretty (CompFunExt _ funcName pieceName Nothing) =
-                        mySep ( [text "ext", pretty funcName, text "for", pretty pieceName, text "where" ])
+        pretty (CompFunExt _ tvs mccx mcx funcName pieceName Nothing) =
+                        mySep ( [text "ext", ppForall tvs, maybePP pretty mccx, maybePP pretty mcx
+                                , pretty funcName, text "for", pretty pieceName, text "where" ])
 
-        pretty (CompFunExt _ funcName pieceName mInstDecls) = 
-                mySep ( [text "ext", pretty funcName, text "for", pretty pieceName, text "where" ])
+        pretty (CompFunExt _ tvs mccx mcx funcName pieceName mInstDecls) = 
+                mySep ( [text "ext", ppForall tvs, maybePP pretty mccx, maybePP pretty mcx
+                        , pretty funcName, text "for", pretty pieceName, text "where" ])
                 $$$ ppBody classIndent (fromMaybe [] ((ppDecls False) <$> mInstDecls ))
 
 instance Pretty (InstRule l) where
-    pretty (IRule _ tvs mctxt qn)  =
+    pretty (IRule _ tvs mccx mctxt qn)  =
             mySep [ppForall tvs
-                  , maybePP pretty mctxt, pretty qn]
+                  , maybePP pretty mccx
+                  , maybePP pretty mctxt
+                  , pretty qn]
     pretty (IParen _ ih)        = parens (pretty ih)
 
 instance  Pretty (InstHead l) where

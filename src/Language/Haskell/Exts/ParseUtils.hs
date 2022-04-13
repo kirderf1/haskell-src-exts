@@ -80,6 +80,7 @@ module Language.Haskell.Exts.ParseUtils (
     , p_tuple_con           -- Boxed -> Int -> PExp
     , p_unboxed_singleton_con   -- PExp
     , pexprToQName
+    , checkCompFunExt
     ) where
 
 import Language.Haskell.Exts.Syntax hiding ( Type(..), Asst(..), Exp(..), FieldUpdate(..), XAttr(..), Context(..) )
@@ -371,18 +372,18 @@ toTyVarBind (TyKind l (TyVar _ n) k) = KindedVar l n k
 
 checkInstHeader :: PType L -> P (InstRule L)
 checkInstHeader (TyParen l t) = checkInstHeader t >>= return . IParen l
-checkInstHeader (TyForall l mtvs Nothing cs t) = do
+checkInstHeader (TyForall l mtvs mccx cs t) = do
     cs' <- checkSContext cs
     checkMultiParam t
-    checkInsts (Just l) mtvs cs' t
-checkInstHeader t = checkMultiParam t >> checkInsts Nothing Nothing Nothing t
+    checkInsts (Just l) mtvs mccx cs' t
+checkInstHeader t = checkMultiParam t >> checkInsts Nothing Nothing Nothing Nothing t
 
 
-checkInsts :: Maybe L -> Maybe [TyVarBind L] -> Maybe (S.Context L) -> PType L -> P (InstRule L)
-checkInsts _ mtvs mctxt (TyParen l t) = checkInsts Nothing mtvs mctxt t >>= return . IParen l
-checkInsts l1 mtvs mctxt t = do
+checkInsts :: Maybe L -> Maybe [TyVarBind L] -> Maybe (CompContext L) -> Maybe (S.Context L) -> PType L -> P (InstRule L)
+checkInsts _ mtvs mccx mctxt (TyParen l t) = checkInsts Nothing mtvs mccx mctxt t >>= return . IParen l
+checkInsts l1 mtvs mccx mctxt t = do
     t' <- checkInstsGuts t
-    return $ IRule (fromMaybe (fmap ann mctxt <?+> ann t') l1) mtvs mctxt t'
+    return $ IRule (fromMaybe (fmap ann mccx <?+> (fmap ann mctxt <?+> ann t')) l1) mtvs mccx mctxt t'
 
 checkInstsGuts :: PType L -> P (InstHead L)
 checkInstsGuts (TyApp l h t) = do
@@ -400,7 +401,7 @@ checkInstsGuts (TyParen l t) = checkInstsGuts t >>= return . IHParen l
 checkInstsGuts _ = fail "Illegal instance declaration"
 
 checkDeriving :: [PType L] -> P [InstRule L]
-checkDeriving = mapM (checkInsts Nothing Nothing Nothing)
+checkDeriving = mapM (checkInsts Nothing Nothing Nothing Nothing)
 
 -----------------------------------------------------------------------------
 -- Checking Patterns.
@@ -1323,3 +1324,23 @@ mkSumOrTuple Unboxed s (SSum before after e) = return (UnboxedSum s before after
 mkSumOrTuple boxity s (STuple ms) =
     return $ TupleSection s boxity ms
 mkSumOrTuple Boxed _s (SSum {}) = fail "Boxed sums are not implemented"
+
+
+----------------------------------------------
+-- | Composable types 
+
+checkCompFunExt :: PType L -> P (Maybe [TyVarBind L], Maybe (CompContext L), Maybe (S.Context L), Name L)
+checkCompFunExt (TyForall l mtvs mccx mcx t) = do
+    mcx' <- checkSContext mcx
+    checkCompFunExt2 (Just l) mtvs mccx mcx' t
+checkCompFunExt t = checkCompFunExt2 Nothing Nothing Nothing Nothing t
+
+checkCompFunExt2 :: Maybe L -> Maybe [TyVarBind L] -> Maybe (CompContext L) -> Maybe (S.Context L) -> PType L -> P (Maybe [TyVarBind L], Maybe (CompContext L), Maybe (S.Context L), Name L) 
+checkCompFunExt2 _l mtvs mccx mcx t = do
+    t' <- checkCompFunExtType t
+    return $ (mtvs, mccx, mcx, t')
+
+checkCompFunExtType :: PType L -> P (Name L)
+checkCompFunExtType (TyVar _l n) = return n
+checkCompFunExtType _ = fail "Illegal function extension declaration"
+

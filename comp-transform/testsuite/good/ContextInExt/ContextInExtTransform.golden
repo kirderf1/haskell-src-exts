@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ExplicitForAll #-}
 module ContextInExt where
 import qualified Data.Comp
 import qualified Data.Comp.Derive
@@ -27,5 +28,5 @@ d = d' . Data.Comp.unTerm
 
 $( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''D] )
 
-instance forall e. D B where
+instance forall e . D B where
         d' (C a) = d a

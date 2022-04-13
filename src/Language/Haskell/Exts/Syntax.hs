@@ -345,7 +345,7 @@ data Decl l
      | PieceCatDecl l (Name l)
      | PieceDecl    l (QName l) (Name l) [QualConDecl l] [Deriving l]
      | CompFunDecl  l [Name l] (QName l) (Type l)
-     | CompFunExt   l (QName l) (QName l) (Maybe [InstDecl l])
+     | CompFunExt   l (Maybe [TyVarBind l]) (Maybe (CompContext l)) (Maybe (Context l)) (Name l) (QName l) (Maybe [InstDecl l])
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
 data  PatternSynDirection l =
@@ -455,7 +455,7 @@ data DeclHead l
 -- >   (Just [ UnkindedVar () (Ident () "a") ])
 -- >   ...
 data InstRule l
-    = IRule l (Maybe [TyVarBind l]) (Maybe (Context l)) (InstHead l)
+    = IRule l (Maybe [TyVarBind l]) (Maybe (CompContext l)) (Maybe (Context l)) (InstHead l)
     | IParen l (InstRule l)
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
@@ -1332,7 +1332,7 @@ instance Annotated Decl where
         PieceCatDecl   l _              -> l
         PieceDecl      l _ _ _ _        -> l
         CompFunDecl    l _ _ _          -> l
-        CompFunExt     l _ _ _          -> l
+        CompFunExt     l _ _ _ _ _ _    -> l
     amap f decl = case decl of
         TypeDecl     l dh t      -> TypeDecl    (f l) dh t
         TypeFamDecl  l dh mk mi  -> TypeFamDecl (f l) dh mk mi
@@ -1374,7 +1374,7 @@ instance Annotated Decl where
         PieceCatDecl l ca                -> PieceCatDecl (f l) ca
         PieceDecl    l ca dh cds ders    -> PieceDecl (f l) ca dh cds ders
         CompFunDecl  l ns ca t           -> CompFunDecl (f l) ns ca t
-        CompFunExt   l fn pn ins         -> CompFunExt (f l) fn pn ins
+        CompFunExt   l mfa mccx mcx fn pn ins   -> CompFunExt (f l) mfa mccx mcx fn pn ins
 
 instance Annotated Role where
     ann r = case r of
@@ -1422,10 +1422,10 @@ instance Annotated DeclHead where
     amap f (DHApp l dh t)        = DHApp (f l) dh t
 
 instance Annotated InstRule where
-    ann (IRule l _ _ _)         = l
-    ann (IParen l _)            = l
-    amap f (IRule l mtv cxt qn) = IRule (f l) mtv cxt qn
-    amap f (IParen l ih)        = IParen (f l) ih
+    ann (IRule l _ _ _ _)            = l
+    ann (IParen l _)                 = l
+    amap f (IRule l mtv mccx cxt qn) = IRule (f l) mtv mccx cxt qn
+    amap f (IParen l ih)             = IParen (f l) ih
 
 instance Annotated InstHead where
     ann (IHCon l _)              = l

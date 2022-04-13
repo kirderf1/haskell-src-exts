@@ -80,11 +80,11 @@ transformDecl (CompFunDecl _ names category t) = do
         classDecl <- functionClass className funcName t
         sigDecl <- functionsig nam className t
         return [classDecl, sigDecl, functionBind nam funcName, noinline nam, liftSum className]
-transformDecl (CompFunExt _ funName pieceName Nothing) = do
-    instHead <- createInstHead funName pieceName
+transformDecl (CompFunExt _ mtvs mccx mcx funName pieceName Nothing) = do
+    instHead <- createInstHead mtvs mccx mcx funName pieceName
     return [InstDecl () Nothing instHead Nothing]
-transformDecl (CompFunExt _ funName pieceName (Just instDecls)) = do 
-    instHead <- createInstHead funName pieceName
+transformDecl (CompFunExt _ mtvs mccx mcx funName pieceName (Just instDecls)) = do 
+    instHead <- createInstHead mtvs mccx mcx funName pieceName
     instDecls' <- mapM transformInstDecl instDecls
     return [InstDecl () Nothing instHead (Just instDecls')]
 
@@ -156,7 +156,7 @@ deriveFunctor :: Deriving ()
 deriveFunctor =
   Deriving () Nothing
     [IRule () Nothing 
-      Nothing
+      Nothing Nothing 
       (IHCon () (UnQual () (name "Functor")))]
 
 
@@ -365,11 +365,17 @@ checkInCategory category pieces (p:ps) = if Set.member p pieces
     
     
 -- | Create instance head (roughly the first line of an instance declaration)
-createInstHead :: QName () -> QName () -> Transform (InstRule ())
-createInstHead funName pieceName = do
-    className <- toClassQName funName
-    return $ IRule () Nothing Nothing (IHApp () (IHCon () className) (TyCon () pieceName))
+createInstHead :: Maybe [TyVarBind ()] -> Maybe (CompContext ()) -> Maybe (Context ()) -> Name () -> QName () -> Transform (InstRule ())
+createInstHead mtvs mccx mcx funName pieceName = do
+    className <- toClassName funName
+    case mccx of
+         Nothing -> return $ IRule () mtvs Nothing mcx (IHApp () (IHCon () (UnQual () className)) (TyCon () pieceName))
+         Just ccx -> do
+             (mcx', _vs) <- transformCompContext ccx mcx 
+             return $ IRule () mtvs Nothing mcx' (IHApp () (IHCon () (UnQual () className)) (TyCon () pieceName))
+
     
+-- | Transform a qualified function name to a qualified class name
 toClassQName :: QName () -> Transform (QName ())
 toClassQName (Qual _ moduleName fname) = do
                 cname <- toClassName fname

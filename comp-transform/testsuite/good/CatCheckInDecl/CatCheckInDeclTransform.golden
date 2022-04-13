@@ -10,7 +10,7 @@ import qualified Data.Comp.Derive
 import qualified Data.Comp.Show ()
 import qualified Data.Comp.Equality ()
 
-class D f e where
+class () => D f e where
         d' :: (D g e) => f (Data.Comp.Term g) -> Data.Comp.Term e
 
 d :: (D g e) => Data.Comp.Term g -> Data.Comp.Term e

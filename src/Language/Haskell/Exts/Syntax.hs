@@ -344,7 +344,7 @@ data Decl l
      -- ^ A COMPLETE pragma
      | PieceCatDecl l (Name l)
      | PieceDecl    l (QName l) (Name l) [QualConDecl l] [Deriving l]
-     | CompFunDecl  l [Name l] (QName l) (Type l)
+     | CompFunDecl  l [Name l] (Maybe [TyVarBind l]) (Maybe (CompContext l)) (Maybe (Context l)) (QName l) (Type l)
      | CompFunExt   l (Maybe [TyVarBind l]) (Maybe (CompContext l)) (Maybe (Context l)) (Name l) (QName l) (Maybe [InstDecl l])
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
@@ -1331,7 +1331,7 @@ instance Annotated Decl where
         CompletePragma l _ _            -> l
         PieceCatDecl   l _              -> l
         PieceDecl      l _ _ _ _        -> l
-        CompFunDecl    l _ _ _          -> l
+        CompFunDecl    l _ _ _ _ _ _    -> l
         CompFunExt     l _ _ _ _ _ _    -> l
     amap f decl = case decl of
         TypeDecl     l dh t      -> TypeDecl    (f l) dh t
@@ -1373,8 +1373,8 @@ instance Annotated Decl where
         CompletePragma   l cs ty         -> CompletePragma (f l) cs ty
         PieceCatDecl l ca                -> PieceCatDecl (f l) ca
         PieceDecl    l ca dh cds ders    -> PieceDecl (f l) ca dh cds ders
-        CompFunDecl  l ns ca t           -> CompFunDecl (f l) ns ca t
-        CompFunExt   l mfa mccx mcx fn pn ins   -> CompFunExt (f l) mfa mccx mcx fn pn ins
+        CompFunDecl  l ns mtvs mccx mcx ca t     -> CompFunDecl (f l) ns mtvs mccx mcx ca t
+        CompFunExt   l mtvs mccx mcx fn pn ins   -> CompFunExt (f l) mtvs mccx mcx fn pn ins
 
 instance Annotated Role where
     ann r = case r of

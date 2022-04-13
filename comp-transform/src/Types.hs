@@ -54,7 +54,7 @@ instance TypeMap Decl where
             CompletePragma   l cs ty         -> return $ CompletePragma l cs ty
             PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh <$> (mapType f `mapM` cds) <*> (mapType f `mapM` ders)
             PieceCatDecl l ca                -> return $ PieceCatDecl l ca
-            CompFunDecl  l ns ca t           -> CompFunDecl l ns ca <$> mapType f t
+            CompFunDecl  l ns mtv mccx mcx ca t    -> CompFunDecl l ns <$> ((mapType f `mapM`) `mapM` mtv) <*> return mccx <*> (mapType f `mapM` mcx) <*> return ca <*> mapType f t
             CompFunExt   l mtv mccx mcx fn pn ids  -> CompFunExt l <$> ((mapType f `mapM`) `mapM` mtv) <*> return mccx <*> (mapType f `mapM` mcx) <*> return fn <*> return pn <*> ((mapType f `mapM`) `mapM` ids)
             
 

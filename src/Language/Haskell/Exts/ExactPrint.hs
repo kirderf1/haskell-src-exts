@@ -931,9 +931,22 @@ instance ExactP Decl where
     PieceCatDecl _l ca -> do
          printString "piececategory"
          exactPC ca
-    CompFunDecl l ns ca t -> do
+    CompFunDecl l ns mtvs mccx mcx ca t -> do
         let pts = srcInfoPoints l
         printInterleaved' (zip pts (replicate (length pts - 1) "," ++ ["-:"])) ns
+        let pts2 = srcInfoPoints l
+        _ <- case mtvs of
+                Nothing -> return pts2
+                Just tvs ->
+                    case pts2 of
+                     [a,b] -> do
+                        printStringAt (pos a) "forall"
+                        mapM_ exactPC tvs
+                        printStringAt (pos b) "."
+                        return pts2
+                     _ -> errorEP "ExactP: Decl: CompFunExt is given too few srcInfoPoints"
+        maybeEP exactPC mccx
+        maybeEP exactPC mcx
         exactPC ca
         printString "->"
         exactPC t

@@ -80,6 +80,7 @@ module Language.Haskell.Exts.ParseUtils (
     , p_tuple_con           -- Boxed -> Int -> PExp
     , p_unboxed_singleton_con   -- PExp
     , pexprToQName
+    , checkCompFunDecl
     , checkCompFunExt
     ) where
 
@@ -1332,15 +1333,33 @@ mkSumOrTuple Boxed _s (SSum {}) = fail "Boxed sums are not implemented"
 checkCompFunExt :: PType L -> P (Maybe [TyVarBind L], Maybe (CompContext L), Maybe (S.Context L), Name L)
 checkCompFunExt (TyForall l mtvs mccx mcx t) = do
     mcx' <- checkSContext mcx
-    checkCompFunExt2 (Just l) mtvs mccx mcx' t
-checkCompFunExt t = checkCompFunExt2 Nothing Nothing Nothing Nothing t
+    checkCompFunExt' (Just l) mtvs mccx mcx' t
+checkCompFunExt t = checkCompFunExt' Nothing Nothing Nothing Nothing t
 
-checkCompFunExt2 :: Maybe L -> Maybe [TyVarBind L] -> Maybe (CompContext L) -> Maybe (S.Context L) -> PType L -> P (Maybe [TyVarBind L], Maybe (CompContext L), Maybe (S.Context L), Name L) 
-checkCompFunExt2 _l mtvs mccx mcx t = do
+checkCompFunExt' :: Maybe L -> Maybe [TyVarBind L] -> Maybe (CompContext L) -> Maybe (S.Context L) -> PType L -> P (Maybe [TyVarBind L], Maybe (CompContext L), Maybe (S.Context L), Name L) 
+checkCompFunExt' _l mtvs mccx mcx t = do
     t' <- checkCompFunExtType t
     return $ (mtvs, mccx, mcx, t')
 
 checkCompFunExtType :: PType L -> P (Name L)
 checkCompFunExtType (TyVar _l n) = return n
-checkCompFunExtType _ = fail "Illegal function extension declaration"
+checkCompFunExtType _ = fail "Illegal composable function extension declaration"
 
+
+
+checkCompFunDecl :: PType L -> P (Maybe [TyVarBind L], Maybe (CompContext L), Maybe (S.Context L), QName L, S.Type L)
+checkCompFunDecl (TyForall l mtvs mccx mcx t) = do
+    mcx' <- checkSContext mcx
+    checkCompFunDecl' (Just l) mtvs mccx mcx' t
+checkCompFunDecl t = checkCompFunDecl' Nothing Nothing Nothing Nothing t
+
+checkCompFunDecl' :: Maybe L -> Maybe [TyVarBind L] -> Maybe (CompContext L) -> Maybe (S.Context L) -> PType L -> P (Maybe [TyVarBind L], Maybe (CompContext L), Maybe (S.Context L), QName L, S.Type L) 
+checkCompFunDecl' _l mtvs mccx mcx t = do
+    (qn, t') <- checkCompFunDeclType t
+    return $ (mtvs, mccx, mcx, qn, t')
+
+checkCompFunDeclType :: PType L -> P ((QName L, S.Type L))
+checkCompFunDeclType (TyFun _ (TyCon _ qn) t)  = do 
+    t' <- checkType t
+    return (qn, t')
+checkCompFunDeclType _ = fail "Illegal composable function declaration"

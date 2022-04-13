@@ -67,18 +67,22 @@ transformDecl (PieceDecl _ category headName cons derives) =
         (deriveFunctor : derives)
         : [deriveTHPiece headName])
 transformDecl (PieceCatDecl _ _) = return []
-transformDecl (CompFunDecl _ names category t) = do
+transformDecl (CompFunDecl _ names _mtvs mccx mcx category t) = do
     (sig, _) <- ask
     if Map.member category sig
-      then concat <$> (declsForName `mapM` names)
+      then concat <$> (declsForName mccx mcx `mapM` names)
       else throwError $ "Expected first argument to be a piece category, was: \"" ++ show category ++ "\""
   where
-    declsForName :: Name () -> Transform [Decl ()]
-    declsForName nam = do
+    declsForName :: Maybe (CompContext ()) -> Maybe (Context ()) -> Name () -> Transform [Decl ()]
+    declsForName mccx mcx nam = do
+        (mcx', vars) <- case mccx of 
+                Nothing -> return (mcx, [])
+                Just ccx -> transformCompContext ccx mcx 
+        t' <- mapType (exchangeToTerm vars) t
         className <- toClassName nam
         funcName <- toFuncName nam
-        classDecl <- functionClass className funcName t
-        sigDecl <- functionsig nam className t
+        classDecl <- functionClass mcx' className funcName t'
+        sigDecl <- functionsig nam className t'
         return [classDecl, sigDecl, functionBind nam funcName, noinline nam, liftSum className]
 transformDecl (CompFunExt _ mtvs mccx mcx funName pieceName Nothing) = do
     instHead <- createInstHead mtvs mccx mcx funName pieceName
@@ -307,10 +311,10 @@ toClassName nam = do
     
 
 -- | Build a declaration of a class corresponding to a function
-functionClass :: Name () -> Name () -> Type () -> Transform (Decl ())
-functionClass className functionName t = do
+functionClass :: Maybe (Context ()) -> Name () -> Name () -> Type () -> Transform (Decl ())
+functionClass mcx className functionName t = do
     funType <- transformFunType className (TyApp () (TyVar () (name "f")) (TyParen () termType)) t
-    return $ ClassDecl () Nothing
+    return $ ClassDecl () mcx
         (buildType $ collectUniqueVars t) []
         (Just [classFunctionDecl functionName funType])
   where
@@ -406,7 +410,7 @@ transformMatch (InfixMatch _ pat funName patterns rhs maybeBinds) = do
    
 -- | Transform compcontext into regular context
 transformCompContext :: CompContext () -> Maybe (Context ()) -> Transform ((Maybe (Context ()), [Name ()]))
-transformCompContext (CompCxEmpty _) mcx = return (mcx, [])
+transformCompContext (CompCxEmpty _) mcx = addToContext [] mcx
 transformCompContext (CompCxSingle _ constraint) mcx = addToContext [constraint] mcx
 transformCompContext (CompCxTuple _ constraints) mcx = addToContext constraints mcx
 

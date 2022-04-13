@@ -118,11 +118,11 @@ transformType t = return t
 
 -- | Transform an expression
 transformExp :: Exp () -> Transform (Exp ())
-transformExp a@(App _ (Con _ qcon) expr) = do
+transformExp a@(Con _ qcon) = do
     (_, constrs) <- ask
     conStr <- lift $ qNameStr ("App with " ++ show qcon) qcon
     if Set.member conStr constrs
-        then return $ App () (Var () (UnQual () (Ident () ("i" ++ conStr)))) expr
+        then return $ Var () (UnQual () (Ident () ("i" ++ conStr)))
         else return a
 transformExp a@(InfixApp _ expr1 (QConOp _ qcon) expr2) = do
     (_, constrs) <- ask
@@ -130,6 +130,20 @@ transformExp a@(InfixApp _ expr1 (QConOp _ qcon) expr2) = do
     if Set.member conStr constrs
         then return $ InfixApp () expr1
             (QVarOp () (UnQual () (Ident () ("i" ++ conStr)))) expr2
+        else return a
+transformExp a@(LeftSection _ expr (QConOp _ qcon)) = do
+    (_, constrs) <- ask
+    conStr <- lift $ qNameStr ("LeftSection with " ++ show qcon) qcon
+    if Set.member conStr constrs
+        then return $ LeftSection () expr
+            (QVarOp () (UnQual () (Ident () ("i" ++ conStr))))
+        else return a
+transformExp a@(RightSection _ (QConOp _ qcon) expr) = do
+    (_, constrs) <- ask
+    conStr <- lift $ qNameStr ("LeftSection with " ++ show qcon) qcon
+    if Set.member conStr constrs
+        then return $ RightSection ()
+            (QVarOp () (UnQual () (Ident () ("i" ++ conStr)))) expr
         else return a
 transformExp e = return e
 

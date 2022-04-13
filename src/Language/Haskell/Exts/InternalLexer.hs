@@ -274,7 +274,7 @@ reserved_ops = [
 special_varops :: [(String,(Token, Maybe ExtScheme))]
 special_varops = [
  -- the dot is only a special symbol together with forall, but can still be used as function composition
- ( ".",  (Dot,          Just (Any [ExplicitForAll, ExistentialQuantification])) ),
+ ( ".",  (Dot,          Just (Any [ExplicitForAll, ExistentialQuantification, ComposableTypes])) ),
  ( "-",  (Minus,        Nothing) ),
  ( "!",  (Exclamation,  Nothing) )
  ]

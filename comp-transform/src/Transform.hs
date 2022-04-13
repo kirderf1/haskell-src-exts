@@ -14,6 +14,7 @@ import qualified Data.Map as Map
 import           Data.Set   (Set)
 import qualified Data.Set as Set
 import           Data.Char (toUpper)
+import           Data.Maybe (catMaybes)
 
 import Control.Monad.Reader
 import Control.Monad.Except
@@ -66,24 +67,28 @@ transformDecl (PieceDecl _ category headName cons derives) =
         (deriveFunctor : derives)
         : [deriveTHPiece headName])
 transformDecl (PieceCatDecl _ _) = return []
-transformDecl (CompFunDecl _ names category t) = do
+transformDecl (CompFunDecl _ names _mtvs mccx mcx category t) = do
     (sig, _) <- ask
     if Map.member category sig
-      then concat <$> (declsForName `mapM` names)
+      then concat <$> (declsForName mccx mcx `mapM` names)
       else throwError $ "Expected first argument to be a piece category, was: \"" ++ show category ++ "\""
   where
-    declsForName :: Name () -> Transform [Decl ()]
-    declsForName nam = do
+    declsForName :: Maybe (CompContext ()) -> Maybe (Context ()) -> Name () -> Transform [Decl ()]
+    declsForName mccx mcx nam = do
+        (mcx', vars) <- case mccx of 
+                Nothing -> return (mcx, [])
+                Just ccx -> transformCompContext ccx mcx 
+        t' <- mapType (exchangeToTerm vars) t
         className <- toClassName nam
         funcName <- toFuncName nam
-        classDecl <- functionClass className funcName t
-        sigDecl <- functionsig nam className t
+        classDecl <- functionClass mcx' className funcName t'
+        sigDecl <- functionsig nam className t'
         return [classDecl, sigDecl, functionBind nam funcName, noinline nam, liftSum className]
-transformDecl (CompFunExt _ funName pieceName Nothing) = do
-    instHead <- createInstHead funName pieceName
+transformDecl (CompFunExt _ mtvs mccx mcx funName pieceName Nothing) = do
+    instHead <- createInstHead mtvs mccx mcx funName pieceName
     return [InstDecl () Nothing instHead Nothing]
-transformDecl (CompFunExt _ funName pieceName (Just instDecls)) = do 
-    instHead <- createInstHead funName pieceName
+transformDecl (CompFunExt _ mtvs mccx mcx funName pieceName (Just instDecls)) = do 
+    instHead <- createInstHead mtvs mccx mcx funName pieceName
     instDecls' <- mapM transformInstDecl instDecls
     return [InstDecl () Nothing instHead (Just instDecls')]
 
@@ -91,6 +96,10 @@ transformDecl d = return [d]
 
 -- | Transform a type
 transformType :: Type () -> Transform (Type ())
+transformType (TyForall _ mfa (Just ccx) mcx t) = do
+    (mcx', vars) <- transformCompContext ccx mcx 
+    t' <- mapType (exchangeToTerm vars) t
+    return $ TyForall () mfa Nothing mcx' t'
 transformType (TyComp _ category types) = do
     (cats, _) <- ask
     catStr <- lift $ qNameStr "TyComp" category 
@@ -151,7 +160,7 @@ deriveFunctor :: Deriving ()
 deriveFunctor =
   Deriving () Nothing
     [IRule () Nothing 
-      Nothing
+      Nothing Nothing 
       (IHCon () (UnQual () (name "Functor")))]
 
 
@@ -302,10 +311,10 @@ toClassName nam = do
     
 
 -- | Build a declaration of a class corresponding to a function
-functionClass :: Name () -> Name () -> Type () -> Transform (Decl ())
-functionClass className functionName t = do
+functionClass :: Maybe (Context ()) -> Name () -> Name () -> Type () -> Transform (Decl ())
+functionClass mcx className functionName t = do
     funType <- transformFunType className (TyApp () (TyVar () (name "f")) (TyParen () termType)) t
-    return $ ClassDecl () Nothing
+    return $ ClassDecl () mcx
         (buildType $ collectUniqueVars t) []
         (Just [classFunctionDecl functionName funType])
   where
@@ -321,7 +330,7 @@ classFunctionDecl functionName t = ClsDecl () (TypeSig () [functionName] t)
 transformFunType :: Name () -> Type () -> Type () -> Transform (Type ())
 transformFunType cname replType ty = do
     let resT = TyFun () replType ty
-    return (TyForall () Nothing (Just (CxSingle () (ParenA () (TypeA () (buildType $ collectUniqueVars ty))))) resT)
+    return (TyForall () Nothing Nothing (Just (CxSingle () (ParenA () (TypeA () (buildType $ collectUniqueVars ty))))) resT)
   where
     buildType []         = TyApp () (TyCon () (UnQual () cname)) (TyVar () (name "g"))
     buildType (var:vars) = TyApp () (buildType vars) (TyVar () var)
@@ -360,17 +369,25 @@ checkInCategory category pieces (p:ps) = if Set.member p pieces
     
     
 -- | Create instance head (roughly the first line of an instance declaration)
-createInstHead :: QName () -> QName () -> Transform (InstRule ())
-createInstHead funName pieceName = do
-    className <- toClassQName funName
-    return $ IRule () Nothing Nothing (IHApp () (IHCon () className) (TyCon () pieceName))
-    where toClassQName (Qual _ moduleName fname) = do
+createInstHead :: Maybe [TyVarBind ()] -> Maybe (CompContext ()) -> Maybe (Context ()) -> Name () -> QName () -> Transform (InstRule ())
+createInstHead mtvs mccx mcx funName pieceName = do
+    className <- toClassName funName
+    case mccx of
+         Nothing -> return $ IRule () mtvs Nothing mcx (IHApp () (IHCon () (UnQual () className)) (TyCon () pieceName))
+         Just ccx -> do
+             (mcx', _vs) <- transformCompContext ccx mcx 
+             return $ IRule () mtvs Nothing mcx' (IHApp () (IHCon () (UnQual () className)) (TyCon () pieceName))
+
+    
+-- | Transform a qualified function name to a qualified class name
+toClassQName :: QName () -> Transform (QName ())
+toClassQName (Qual _ moduleName fname) = do
                 cname <- toClassName fname
                 return $ Qual () moduleName cname
-          toClassQName (UnQual _ fname) = do 
+toClassQName (UnQual _ fname) = do 
                 cname <- toClassName fname
                 return $ UnQual () cname
-          toClassQName _ = throwError "Unexpected special qname of function name"
+toClassQName _ = throwError "Unexpected special qname of function name"
 
 
 -- | Transform an instance declaration to have the function with a prime
@@ -389,6 +406,55 @@ transformMatch (Match _ funName patterns rhs maybeBinds) = do
 transformMatch (InfixMatch _ pat funName patterns rhs maybeBinds) = do
     funName' <- toFuncName funName
     return (InfixMatch () pat funName' patterns rhs maybeBinds)
+    
+   
+-- | Transform compcontext into regular context
+transformCompContext :: CompContext () -> Maybe (Context ()) -> Transform ((Maybe (Context ()), [Name ()]))
+transformCompContext (CompCxEmpty _) mcx = addToContext [] mcx
+transformCompContext (CompCxSingle _ constraint) mcx = addToContext [constraint] mcx
+transformCompContext (CompCxTuple _ constraints) mcx = addToContext constraints mcx
+
+-- | Add constraints to context instead
+addToContext :: [Constraint ()] -> Maybe (Context ()) -> Transform ((Maybe (Context ()), [Name ()]))
+addToContext cs Nothing =  addToContext' cs []
+addToContext cs (Just (CxEmpty _)) = addToContext' cs []
+addToContext cs (Just (CxSingle _ asst)) =  addToContext' cs [asst]
+addToContext cs (Just (CxTuple _ assts)) =  addToContext' cs assts
+    
+-- | Add constraints to assertions in a context
+addToContext' :: [Constraint ()] -> [Asst ()] -> Transform ((Maybe (Context ()), [Name ()]))
+addToContext' cs assts = do
+    (assts', vars) <- addToAssts cs assts     
+    return $ (Just (contextFromList assts'), vars)
+
+-- | Create context from list of assertions
+contextFromList :: [Asst ()] -> Context ()
+contextFromList [] = CxEmpty ()
+contextFromList [a] = CxSingle () a
+contextFromList as = CxTuple () as
+
+-- | Add constraints to list of assertions
+addToAssts :: [Constraint ()] -> [Asst ()] -> Transform (([Asst ()], [Name ()]))
+addToAssts cs as = do 
+    asstvars <- mapM constraintToAsst cs
+    let (csAssts, vars) = unzip asstvars
+    return $ (catMaybes csAssts ++ as, vars)
+
+-- | Transform constraint to assertion
+constraintToAsst :: Constraint () -> Transform (Maybe (Asst ()), Name ())
+constraintToAsst (FunConstraint _ fun v) = do
+    cname <- toClassQName fun
+    return (Just (TypeA () (TyApp () (TyCon () cname) (TyVar () v))), v) 
+constraintToAsst (PieceConstraint _ piece v) = return (Just (TypeA () (TyInfix () (TyCon () piece) 
+    (UnpromotedName () (Qual () (ModuleName () "Data.Comp") (Symbol () ":<:")))  (TyVar () v))), v)
+constraintToAsst (CategoryConstraint _ category v) = return (Nothing, v)
+
+-- | Change a type variable to be a term
+exchangeToTerm :: [Name ()] -> Type () -> Transform (Type ())
+exchangeToTerm vars v@(TyVar _ vname) = if vname `elem` vars 
+                                     then return $ TyApp () termName v
+                                     else return v
+exchangeToTerm _ t = return t
     
 -- | Return string part of a name with custom error message
 nameStr :: MonadError String m => String -> Name () -> m String
@@ -415,7 +481,8 @@ class WithVar a where
 
 instance WithVar Type where
     collectVars t1 = case t1 of
-          TyForall _ mtvs mcx t         -> concatMap (concatMap collectVars) mtvs ++ concatMap collectVars mcx ++ collectVars t
+          TyForall _ mtvs mccx mcx t    -> concatMap (concatMap collectVars) mtvs ++ concatMap collectVars mccx 
+                                            ++ concatMap collectVars mcx ++ collectVars t
           TyStar  _                     -> []
           TyFun   _ t1' t2              -> collectVars t1' ++ collectVars t2
           TyTuple _ _ ts                -> concatMap collectVars ts
@@ -452,3 +519,10 @@ instance WithVar Asst where
         IParam _ ipn t      -> undefined
         ParenA _ a          -> collectVars a
 
+instance WithVar CompContext where
+    collectVars (CompCxSingle _ c ) = collectVars c
+    collectVars (CompCxTuple  _ cs) = concatMap collectVars cs
+    collectVars (CompCxEmpty _) = []
+    
+instance WithVar Constraint where
+    collectVars _ = undefined

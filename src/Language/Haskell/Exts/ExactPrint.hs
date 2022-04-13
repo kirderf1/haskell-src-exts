@@ -931,16 +931,42 @@ instance ExactP Decl where
     PieceCatDecl _l ca -> do
          printString "piececategory"
          exactPC ca
-    CompFunDecl l ns ca t -> do
+    CompFunDecl l ns mtvs mccx mcx ca t -> do
         let pts = srcInfoPoints l
         printInterleaved' (zip pts (replicate (length pts - 1) "," ++ ["-:"])) ns
+        let pts2 = srcInfoPoints l
+        _ <- case mtvs of
+                Nothing -> return pts2
+                Just tvs ->
+                    case pts2 of
+                     [a,b] -> do
+                        printStringAt (pos a) "forall"
+                        mapM_ exactPC tvs
+                        printStringAt (pos b) "."
+                        return pts2
+                     _ -> errorEP "ExactP: Decl: CompFunExt is given too few srcInfoPoints"
+        maybeEP exactPC mccx
+        maybeEP exactPC mcx
         exactPC ca
         printString "->"
         exactPC t
-    CompFunExt l fn pn mids -> 
+    CompFunExt l mtvs mccx mcx fn pn mids -> 
         case srcInfoPoints l of 
            _:pts -> do
               printString "ext"
+              let pts2 = srcInfoPoints l
+              _ <- case mtvs of
+                Nothing -> return pts2
+                Just tvs ->
+                    case pts2 of
+                     [a,b] -> do
+                        printStringAt (pos a) "forall"
+                        mapM_ exactPC tvs
+                        printStringAt (pos b) "."
+                        return pts2
+                     _ -> errorEP "ExactP: Decl: CompFunExt is given too few srcInfoPoints"
+              maybeEP exactPC mccx
+              maybeEP exactPC mcx
               exactPC fn
               printString "for"
               exactPC pn
@@ -1026,7 +1052,7 @@ instance ExactP DeclHead where
 
 instance ExactP InstRule where
   exactP ih' = case ih' of
-    IRule l mtvs mctxt qn    -> do
+    IRule l mtvs mccx mctxt qn    -> do
         let pts = srcInfoPoints l
         _ <- case mtvs of
                 Nothing -> return pts
@@ -1038,6 +1064,7 @@ instance ExactP InstRule where
                         printStringAt (pos b) "."
                         return pts
                      _ -> errorEP "ExactP: InstRule: IRule is given too few srcInfoPoints"
+        maybeEP exactPC mccx
         maybeEP exactPC mctxt
         exactPC qn
     IParen l ih        ->
@@ -1076,7 +1103,7 @@ instance ExactP TyVarBind where
 
 instance ExactP Type where
   exactP t' = case t' of
-    TyForall l mtvs mctxt t -> do
+    TyForall l mtvs mccx mctxt t -> do
         let pts = srcInfoPoints l
         _ <- case mtvs of
                 Nothing -> return pts
@@ -1088,6 +1115,7 @@ instance ExactP Type where
                         printStringAt (pos b) "."
                         return pts'
                      _ -> errorEP "ExactP: Type: TyForall is given too few srcInfoPoints"
+        maybeEP exactPC mccx
         maybeEP exactPC mctxt
         exactPC t
     TyStar  _ -> printString "*"
@@ -1155,6 +1183,12 @@ instance ExactP Type where
         exactP cat
         printString "==>"
         parenList (srcInfoPoints l) pieces
+        
+instance ExactP CompContext where
+    exactP _ = errorEP "ExactP: Instance not written for CompContext"
+    
+instance ExactP Constraint where 
+    exactP _ = errorEP "ExactP: Instance not written for Constraint"
         
 
 instance ExactP MaybePromotedName where

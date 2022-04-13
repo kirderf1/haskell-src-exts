@@ -707,18 +707,23 @@ Requires Composable Types extension
 >                        let { l = nIS $1 <++> ann $2  } ;
 >                        return (PieceCatDecl l $2) } }
 
->       | exp0b '-:' qcon '->' truectype           {% do { v <- checkSigVar $1;
->                                            return $ CompFunDecl ($1 <> $5 <** [$2, $4]) [v] $3 $5 } }
->       | exp0b ',' vars '-:' qcon '->' truectype  {% do { v <- checkSigVar $1;
->                                            let {(vs,ss,_) = $3 ; l = $1 <> $7 <** ($2 : reverse ss ++ [$4, $6]) } ;
->                                            return $ CompFunDecl l (v : reverse vs) $5 $7 } }
+>       | exp0b '-:' ctype           
+>                {% do { v <- checkSigVar $1;
+>                        (fa, ccx, cx, qn, t) <- checkCompFunDecl $3 ;
+>                        return $ CompFunDecl ($1 <> $3 <** [$2]) [v] fa ccx cx qn t } }
+>       | exp0b ',' vars '-:' ctype 
+>                {% do { v <- checkSigVar $1;
+>                        (fa, ccx, cx, qn, t) <- checkCompFunDecl $5 ;
+>                        let {(vs,ss,_) = $3 ; l = $1 <> $5 <** ($2 : reverse ss ++ [$4]) } ;
+>                        return $ CompFunDecl l (v : reverse vs) fa ccx cx qn t } }
 
->       | 'ext' qvar 'for' qcon optvaldefs
+>       | 'ext' ctype 'for' qcon optvaldefs
 >                {% do { 
 >                   checkEnabled ComposableTypes ;
+>                   (fa, ccx, cx, fn) <- checkCompFunExt $2 ;
 >                   let { (mis,ss,minf) = $5 ;
->                         l = nIS $1 <++> nIS $3 <++> $2 <> $4 <+?> minf <** ss };
->                   return $ CompFunExt l $2 $4 mis }}
+>                         l = nIS $1 <++> nIS $3 <++> ann $4 <+?> minf <** ss };
+>                   return $ CompFunExt l fa ccx cx fn $4 mis }}
 
 >       | decl          { $1 }
 
@@ -851,7 +856,7 @@ Parsing the body of a closed type family, partially stolen from the source of GH
 >       | sigtype ',' sigtypes              { ($1 : fst $3, $2 : snd $3) }
 
 > sigtype :: { Type L }
->       : ctype                             {% checkType $ mkTyForall (ann $1) Nothing Nothing $1 }
+>       : ctype                             {% checkType $ mkTyForall (ann $1) Nothing Nothing Nothing $1 }
 
 > name_boolformula :: { Maybe (BooleanFormula L) }
 >        : name_boolformula1         { Just $1 }
@@ -1120,8 +1125,9 @@ is any of the keyword-enabling ones, except ExistentialQuantification.
 >       : ctype_('*',NEVER)             { $1 }
 
 > ctype_(ostar,kstar) :: { PType L }
->       : 'forall' ktyvars '.' ctype_(ostar,kstar)      { mkTyForall (nIS $1 <++> ann $4 <** [$1,$3]) (Just (reverse (fst $2))) Nothing $4 }
->       | context_(ostar,kstar) ctype_(ostar,kstar)     { mkTyForall ($1 <> $2) Nothing (Just $1) $2 }
+>       : 'forall' ktyvars '.' ctype_(ostar,kstar)      { mkTyForall (nIS $1 <++> ann $4 <** [$1,$3]) (Just (reverse (fst $2))) Nothing Nothing $4 }
+>       | 'for' compcontext '.' ctype_(ostar,kstar)     { mkTyForall (nIS $1 <++> ann $4 <** [$1,$3]) Nothing (Just $2) Nothing $4 }
+>       | context_(ostar,kstar) ctype_(ostar,kstar)     { mkTyForall ($1 <> $2) Nothing Nothing (Just $1) $2 }
 >       | type_(ostar,kstar)                            { $1 }
 
 Equality constraints require the TypeFamilies extension.
@@ -1281,7 +1287,7 @@ as qcon and then check separately that they are truly unqualified.
 >       : qconid                        { IHCon (ann $1) $1 }
 
 > deriv_clause_types :: { ([InstRule L], SrcSpan, [SrcSpan]) }
->       : qtycls1                       { [IRule (ann $1) Nothing Nothing $1], srcInfoSpan (ann $1), [] }
+>       : qtycls1                       { [IRule (ann $1) Nothing Nothing Nothing $1], srcInfoSpan (ann $1), [] }
 >       | '(' ')'                       { [], $2, [$1, $2] }
 >       | '(' dclasses ')'              { case fst $2 of
 >                                           [ts] -> ([IParen ($1 <^^> $3 <** [$1,$3]) ts], $3, [])
@@ -2228,6 +2234,30 @@ Deriving strategies
 >       : deriv_strategy_no_via { Just $1 }
 >       | deriv_strategy_via    { Just $1 }
 >       | {- empty -}           { Nothing }
+
+
+-----------------------------------------------------------------------------
+Context with constraints for composable types
+
+> compcontext :: { CompContext L }
+>       : '(' constraints ')'    {% do { let {  (cs,ss) = $2 ;
+>                                               l = nIS $1 <++> nIS $3 <** ss } ; 
+>                                        return (CompCxTuple l (reverse cs) ) } }
+>       | constraint             { CompCxSingle (ann $1) $1 }
+>       | '(' ')'                { CompCxEmpty (nIS $1 <++> nIS $2) }
+
+> constraints :: { ([Constraint L],[S]) }
+>       : constraints ',' constraint    { ($3 : fst $1 , $2 : snd $1) }
+>       | constraint                    { ([$1] , []) }
+
+> constraint :: { Constraint L }
+>       : qvar 'for' var        {% do { let { l = ann $1 <++> nIS $2 <++> ann $3 } ;
+>                                       return (FunConstraint l $1 $3) } }
+>       | qcon 'in' var         {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
+>                                       return (PieceConstraint l $1 $3) } }
+>       | qcon '==>' var        {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
+>                                       return (CategoryConstraint l $1 $3) } }
+
 
 -----------------------------------------------------------------------------
 Miscellaneous (mostly renamings)

@@ -586,21 +586,26 @@ instance  Pretty (Decl l) where
         pretty (PieceCatDecl _ category) =
                 mySep ( [text "piececategory", pretty category])
 
-        pretty (CompFunDecl _ nameList category qualType) =
+        pretty (CompFunDecl _ nameList mtvs mccx mcx category qualType) =
                 mySep ((punctuate comma . map pretty $ nameList)
-                      ++ [text "-:", pretty category, text "->", pretty qualType])
+                      ++ [text "-:", ppForall mtvs, maybePP pretty mccx, maybePP pretty mcx
+                         , pretty category, text "->", pretty qualType])
         
-        pretty (CompFunExt _ funcName pieceName Nothing) =
-                        mySep ( [text "ext", pretty funcName, text "for", pretty pieceName, text "where" ])
+        pretty (CompFunExt _ tvs mccx mcx funcName pieceName Nothing) =
+                        mySep ( [text "ext", ppForall tvs, maybePP pretty mccx, maybePP pretty mcx
+                                , pretty funcName, text "for", pretty pieceName, text "where" ])
 
-        pretty (CompFunExt _ funcName pieceName mInstDecls) = 
-                mySep ( [text "ext", pretty funcName, text "for", pretty pieceName, text "where" ])
+        pretty (CompFunExt _ tvs mccx mcx funcName pieceName mInstDecls) = 
+                mySep ( [text "ext", ppForall tvs, maybePP pretty mccx, maybePP pretty mcx
+                        , pretty funcName, text "for", pretty pieceName, text "where" ])
                 $$$ ppBody classIndent (fromMaybe [] ((ppDecls False) <$> mInstDecls ))
 
 instance Pretty (InstRule l) where
-    pretty (IRule _ tvs mctxt qn)  =
+    pretty (IRule _ tvs mccx mctxt qn)  =
             mySep [ppForall tvs
-                  , maybePP pretty mctxt, pretty qn]
+                  , maybePP pretty mccx
+                  , maybePP pretty mctxt
+                  , pretty qn]
     pretty (IParen _ ih)        = parens (pretty ih)
 
 instance  Pretty (InstHead l) where
@@ -871,8 +876,8 @@ prec_btype = 1  -- left argument of ->,
 prec_atype = 2  -- argument of type or data constructor, or of a class
 
 instance  Pretty (Type l) where
-        prettyPrec p (TyForall _ mtvs ctxt htype) = parensIf (p > 0) $
-                myFsep [ppForall mtvs, maybePP pretty ctxt, pretty htype]
+        prettyPrec p (TyForall _ mtvs mccx ctxt htype) = parensIf (p > 0) $
+                myFsep [ppForall mtvs, ppCompContext mccx, maybePP pretty ctxt, pretty htype]
         prettyPrec _ (TyStar _) = text "*"
         prettyPrec p (TyFun _ a b) = parensIf (p > 0) $
                 myFsep [ppBType a, text "->", pretty b]
@@ -933,7 +938,24 @@ instance  Pretty (TyVarBind l) where
 ppForall :: Maybe [TyVarBind l] -> Doc
 ppForall Nothing   = empty
 ppForall (Just []) = empty
-ppForall (Just vs) =    myFsep (text "forall" : map pretty vs ++ [char '.'])
+ppForall (Just vs) = myFsep (text "forall" : map pretty vs ++ [char '.'])
+
+ppCompContext :: Maybe (CompContext l) -> Doc
+ppCompContext Nothing   = empty
+ppCompContext (Just cx) = myFsep (text "for" : pretty cx : [char '.'])
+
+--------------Constraints for composable types-----------------
+
+instance Pretty (CompContext l) where   
+    pretty (CompCxEmpty _)     = text "()"
+    pretty (CompCxSingle _ c)  = pretty c 
+    pretty (CompCxTuple _ cs)  = mySep [parenList (map pretty cs)]
+
+instance Pretty (Constraint l) where
+    pretty (FunConstraint _ qn n) = myFsep [pretty qn, text "for", pretty n]
+    pretty (PieceConstraint _ qn n) = myFsep [pretty qn, text "in", pretty n]
+    pretty (CategoryConstraint _ qn n) = myFsep [pretty qn, text "==>", pretty n]
+
 
 ---------------------------- Kinds ----------------------------
 
@@ -1698,8 +1720,8 @@ instance SrcInfo loc => Pretty (P.PAsst loc) where
         pretty (P.ParenA _ a)      = parens (pretty a)
 
 instance SrcInfo loc => Pretty (P.PType loc) where
-        prettyPrec p (P.TyForall _ mtvs ctxt htype) = parensIf (p > 0) $
-                myFsep [ppForall mtvs, maybePP pretty ctxt, pretty htype]
+        prettyPrec p (P.TyForall _ mtvs mccx ctxt htype) = parensIf (p > 0) $
+                myFsep [ppForall mtvs, ppCompContext mccx, maybePP pretty ctxt, pretty htype]
         prettyPrec _ (P.TyStar _) = text "*"
         prettyPrec p (P.TyFun _ a b) = parensIf (p > 0) $
                 myFsep [prettyPrec prec_btype a, text "->", pretty b]

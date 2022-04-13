@@ -2,26 +2,24 @@
 
 module Main where
 
-piececategory Stmt ==> Exp
-piececategory Exp
+piececategory Stmt Expr
+piececategory Expr
 
-data piece Stmt ==> Assign Exp = Assign String Exp
-data piece Stmt ==> If Exp = If Exp Stmt
-data piece Exp ==> Literal = BoolLit Bool | StringLit String
-data piece Exp ==> BoolOp = And Exp Exp | Or Exp Exp
+data piece Stmt Expr ==> Assign = Assign String Expr
+data piece Stmt Expr ==> If = If Expr Stmt
+data piece Expr ==> Literal = BoolLit Bool | StringLit String
+data piece Expr ==> BoolOp = And Expr Expr | Or Expr Expr
 
-type AExp ==> (Literal, BoolOp)
-type AStmt ==> (Assign AExp, If AExp)
+type AExp = Expr ==> (Literal, BoolOp)
+type AStmt = Stmt AExp ==> (Assign, If)
 
-stringifyS -: Stmt -> String
-stringifyE -: Exp -> String
-
-data Assign exp stmt
+stringifyS -: Stmt e -> String
+stringifyE -: Expr -> String
 
 --instance (StringifyS stmt, StringifyE exp) => StringifyS (Assign exp stmt) where
-ext stringifyS for Assign with stringifyE for Exp where
+ext for (stringifyE for e). stringifyS @e for Assign where
     stringifyS (Assign var exp) = var ++ " = " ++ stringifyE exp
-ext stringifyS for If with stringifyE for Exp where
+ext for (stringifyE for e). stringifyS @e for If where
     stringifyS (If exp stmt) = "if (" ++ stringifyE exp ++ ") " ++ stringifyS stmt
 
 ext stringifyE for Literal where

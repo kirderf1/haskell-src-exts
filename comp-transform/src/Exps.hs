@@ -54,8 +54,8 @@ instance ExpMap Decl where
             CompletePragma   l cs ty         -> return $ CompletePragma l cs ty
             PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh <$> (mapExp f `mapM` cds) <*> (mapExp f `mapM` ders)
             PieceCatDecl l ca                -> return $ PieceCatDecl l ca
-            CompFunDecl  l ns ca t           -> CompFunDecl l ns ca <$> mapExp f t
-            CompFunExt   l fn pn ids         -> CompFunExt l fn pn <$> ((mapExp f `mapM`) `mapM` ids)
+            CompFunDecl  l ns mtv mccx mcx ca t    -> CompFunDecl l ns <$> ((mapExp f `mapM`) `mapM` mtv) <*> return mccx <*> (mapExp f `mapM` mcx) <*> return ca <*> mapExp f t
+            CompFunExt   l mtv mccx mcx fn pn ids  -> CompFunExt l <$> ((mapExp f `mapM`) `mapM` mtv) <*> return mccx <*> (mapExp f `mapM` mcx) <*> return fn <*> return pn <*> ((mapExp f `mapM`) `mapM` ids)
             
 
 instance ExpMap PatternSynDirection where
@@ -82,8 +82,8 @@ instance ExpMap DeclHead where
     mapExp f (DHApp l dh t)        = DHApp l <$> mapExp f dh <*> mapExp f t
 
 instance ExpMap InstRule where
-    mapExp f (IRule l mtv cxt qn) = IRule l <$> ((mapExp f `mapM`) `mapM` mtv) <*> (mapExp f `mapM` cxt) <*> mapExp f qn
-    mapExp f (IParen l ih)        = IParen l <$> mapExp f ih
+    mapExp f (IRule l mtv mccx cxt qn) = IRule l <$> ((mapExp f `mapM`) `mapM` mtv) <*> return mccx <*> (mapExp f `mapM` cxt) <*> mapExp f qn
+    mapExp f (IParen l ih)             = IParen l <$> mapExp f ih
 
 instance ExpMap InstHead where
     mapExp _ (IHCon l n)           = return $ IHCon l n
@@ -148,7 +148,7 @@ instance ExpMap GuardedRhs where
 
 instance ExpMap Type where
     mapExp f t1 = case t1 of
-          TyForall l mtvs mcx t         -> TyForall l <$> ((mapExp f `mapM`) `mapM` mtvs) <*> (mapExp f `mapM` mcx) <*> mapExp f t
+          TyForall l mtvs mccx mcx t    -> TyForall l <$> ((mapExp f `mapM`) `mapM` mtvs) <*> return mccx <*> (mapExp f `mapM` mcx) <*> mapExp f t
           TyStar  l                     -> return $ TyStar l
           TyFun   l t1' t2              -> TyFun l <$> mapExp f t1' <*> mapExp f t2
           TyTuple l b ts                -> TyTuple l b <$> (mapExp f `mapM` ts)

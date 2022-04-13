@@ -1,0 +1,31 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+module ContextInExt where
+import qualified Data.Comp
+import qualified Data.Comp.Derive
+import qualified Data.Comp.Show ()
+import qualified Data.Comp.Equality ()
+
+data B composable_types_recursive_var = C composable_types_recursive_var
+                                          deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''B]
+  )
+
+class D f e where
+        d' :: (D g e) => f (Data.Comp.Term g) -> e
+
+d :: (D g e) => Data.Comp.Term g -> e
+d = d' . Data.Comp.unTerm
+
+{-# NOINLINE d #-}
+
+$( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''D] )
+
+instance (Alternative f) => D B (f g) where
+        d' C = empty

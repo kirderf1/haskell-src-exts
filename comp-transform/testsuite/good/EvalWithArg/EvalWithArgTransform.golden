@@ -2,14 +2,16 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 import qualified Data.Comp
 import qualified Data.Comp.Derive
 import qualified Data.Comp.Show ()
 import qualified Data.Comp.Equality ()
 
-data B a = C Int
-         | D a
-             deriving Functor
+data B composable_types_recursive_var = C Int
+                                      | D composable_types_recursive_var
+                                          deriving Functor
 
 $(
   Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''B]

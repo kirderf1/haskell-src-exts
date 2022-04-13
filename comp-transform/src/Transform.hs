@@ -164,7 +164,7 @@ deriveFunctor =
 -- | Get a name for the parametrized variable.            
 -- TODO: Figure out how to handle unique names for parametrize variables
 getParName :: Name ()
-getParName = name "a"
+getParName = name "composable_types_recursive_var"
 
 
 -- | Template Haskell derive for a piece
@@ -197,7 +197,7 @@ deriveTHListElem nam = qvar (ModuleName () "Data.Comp.Derive") (name nam)
 modifyPragmas :: [ModulePragma ()] -> [ModulePragma ()]
 modifyPragmas ps =  foldr addPragma (removeCompTypes ps)
                                 ["DeriveFunctor","TemplateHaskell","TypeOperators"
-                                ,"FlexibleContexts"] 
+                                ,"FlexibleContexts","FlexibleInstances","MultiParamTypeClasses"] 
     where  
         addPragma :: String -> [ModulePragma ()] -> [ModulePragma ()]
         addPragma nam prs = if pragmasContain nam prs 
@@ -311,8 +311,11 @@ functionClass :: Name () -> Name () -> Type () -> Transform (Decl ())
 functionClass className functionName t = do
     funType <- transformFunType className (TyApp () (TyVar () (name "f")) (TyParen () termType)) t
     return $ ClassDecl () Nothing
-        (DHApp () (DHead () className) (UnkindedVar () (name "f"))) []
+        (buildType $ collectUniqueVars t) []
         (Just [classFunctionDecl functionName funType])
+  where
+    buildType []         = DHApp () (DHead () className) (UnkindedVar () (name "f"))
+    buildType (var:vars) = DHApp () (buildType vars) (UnkindedVar () var)
 
         
 -- | Build the inner class declaration
@@ -323,7 +326,10 @@ classFunctionDecl functionName t = ClsDecl () (TypeSig () [functionName] t)
 transformFunType :: Name () -> Type () -> Type () -> Transform (Type ())
 transformFunType cname replType ty = do
     let resT = TyFun () replType ty
-    return (TyForall () Nothing Nothing (Just (CxSingle () (ParenA () (TypeA () (TyApp () (TyCon () (UnQual () cname)) (TyVar () (name "g"))))))) resT)
+    return (TyForall () Nothing Nothing (Just (CxSingle () (ParenA () (TypeA () (buildType $ collectUniqueVars ty))))) resT)
+  where
+    buildType []         = TyApp () (TyCon () (UnQual () cname)) (TyVar () (name "g"))
+    buildType (var:vars) = TyApp () (buildType vars) (TyVar () var)
 
 -- | Build type for term with parametric part "g"
 termType :: Type ()
@@ -450,3 +456,63 @@ qNameStr :: String -> QName () -> Except String String
 qNameStr err (Qual _ _moduleName nam) = nameStr err nam
 qNameStr err (UnQual _ nam) = nameStr err nam
 qNameStr err _ = throwError $ "Unexpected special QName in " ++ err
+
+collectUniqueVars :: Type () -> [Name ()]
+collectUniqueVars = removeDups Set.empty . collectVars
+  where
+    removeDups _   []         = []
+    removeDups set (var:vars) =
+      if Set.member var set
+        then removeDups set vars
+        else var : removeDups (Set.insert var set) vars
+
+class WithVar a where
+    collectVars :: a l -> [Name l]
+
+instance WithVar Type where
+    collectVars t1 = case t1 of
+          TyForall _ mtvs mccx mcx t    -> concatMap (concatMap collectVars) mtvs ++ concatMap collectVars mccx 
+                                            ++ concatMap collectVars mcx ++ collectVars t
+          TyStar  _                     -> []
+          TyFun   _ t1' t2              -> collectVars t1' ++ collectVars t2
+          TyTuple _ _ ts                -> concatMap collectVars ts
+          TyUnboxedSum _ s              -> concatMap collectVars s
+          TyList  _ t                   -> collectVars t
+          TyParArray  _ t               -> collectVars t
+          TyApp   _ t1' t2              -> collectVars t1' ++ collectVars t2
+          TyVar   _ n                   -> [n]
+          TyCon   _ qn                  -> []
+          TyParen _ t                   -> collectVars t
+          TyInfix _ ta _ tb             -> collectVars ta ++ collectVars tb
+          TyKind  _ t k                 -> undefined
+          TyPromoted _   p              -> undefined
+          TyEquals _ a b                -> undefined
+          TySplice _ s                  -> undefined
+          TyBang _ b u t                -> undefined
+          TyWildCard _ n                -> undefined
+          TyQuasiQuote _ n s            -> undefined
+          TyComp _ c t                  -> []
+
+
+instance WithVar TyVarBind where
+    collectVars (KindedVar   _ n _k) = [n]
+    collectVars (UnkindedVar _ n)    = [n]
+
+instance WithVar Context where
+    collectVars (CxSingle _ asst ) = collectVars asst
+    collectVars (CxTuple  _ assts) = concatMap collectVars assts
+    collectVars (CxEmpty _) = []
+
+instance WithVar Asst where
+    collectVars asst = case asst of
+        TypeA _ t           -> collectVars t
+        IParam _ ipn t      -> undefined
+        ParenA _ a          -> collectVars a
+
+instance WithVar CompContext where
+    collectVars (CompCxSingle _ c ) = collectVars c
+    collectVars (CompCxTuple  _ cs) = concatMap collectVars cs
+    collectVars (CompCxEmpty _) = []
+    
+instance WithVar Constraint where
+    collectVars _ = undefined

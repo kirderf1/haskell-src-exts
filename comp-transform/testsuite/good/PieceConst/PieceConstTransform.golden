@@ -2,14 +2,16 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module PieceConst where
 import qualified Data.Comp
 import qualified Data.Comp.Derive
 import qualified Data.Comp.Show ()
 import qualified Data.Comp.Equality ()
 
-data Value a = Const Int
-                 deriving Functor
+data Value composable_types_recursive_var = Const Int
+                                              deriving Functor
 
 $(
   Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors]

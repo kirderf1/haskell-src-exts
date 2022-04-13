@@ -114,11 +114,11 @@ transformType t = return t
 
 -- | Transform an expression
 transformExp :: Exp () -> Transform (Exp ())
-transformExp a@(App _ (Con _ qcon) expr) = do
+transformExp a@(Con _ qcon) = do
     (_, constrs) <- ask
     conStr <- lift $ qNameStr ("App with " ++ show qcon) qcon
     if Set.member conStr constrs
-        then return $ App () (Var () (UnQual () (Ident () ("i" ++ conStr)))) expr
+        then return $ Var () (UnQual () (Ident () ("i" ++ conStr)))
         else return a
 transformExp a@(InfixApp _ expr1 (QConOp _ qcon) expr2) = do
     (_, constrs) <- ask

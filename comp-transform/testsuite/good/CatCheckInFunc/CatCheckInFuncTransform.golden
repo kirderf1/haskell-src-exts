@@ -1,0 +1,14 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+module CatCheckInFunc where
+import qualified Data.Comp
+import qualified Data.Comp.Derive
+import qualified Data.Comp.Show ()
+import qualified Data.Comp.Equality ()
+
+d :: () => Data.Comp.Term a -> Data.Comp.Term a
+d a = a

@@ -16,7 +16,7 @@ desug -: for (Expr ==> a) . Expr -> a
 ext for (Value in a) . desug @a for Value where
     desug c = c
     
-ext for (Op in a) . desug @a for Sugar where
+ext for (Op in a) . desug @a for Op where
     desug (Add e1 e2) = Add (desug e1) (desug e2)
     desug (Mult e1 e2) = Mult (desug e1) (desug e2)
 

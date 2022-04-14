@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
 module Desug where
 import qualified Data.Comp
 import qualified Data.Comp.Derive
@@ -52,7 +53,7 @@ desug = desug' . Data.Comp.unTerm
 $( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''Desug] )
 
 instance Value Data.Comp.:<: a => Desug Value a where
-        desug' c = c
+        desug' c = Data.Comp.inject c
 
 instance Op Data.Comp.:<: a => Desug Op a where
         desug' (Add e1 e2) = iAdd (desug e1) (desug e2)

@@ -216,7 +216,8 @@ deriveTHListElem nam = qvar (ModuleName () "Data.Comp.Derive") (name nam)
 modifyPragmas :: [ModulePragma ()] -> [ModulePragma ()]
 modifyPragmas ps =  foldr addPragma (removeCompTypes ps)
                                 ["DeriveFunctor","TemplateHaskell","TypeOperators"
-                                ,"FlexibleContexts","FlexibleInstances","MultiParamTypeClasses"] 
+                                ,"FlexibleContexts","FlexibleInstances","MultiParamTypeClasses"
+                                ,"UndecidableInstances"] 
     where  
         addPragma :: String -> [ModulePragma ()] -> [ModulePragma ()]
         addPragma nam prs = if pragmasContain nam prs 

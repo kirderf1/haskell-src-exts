@@ -6,13 +6,13 @@ module Transform (transform) where
 import Language.Haskell.Exts
 
 import FunctionTransform
+import PieceTransform
 import TransformUtils
 import Utils.Types
 import Utils.Decls
 import Utils.Exps
 
 import qualified Data.Map as Map
-import           Data.Set   (Set)
 import qualified Data.Set as Set
 
 import Control.Monad.Reader
@@ -36,29 +36,13 @@ transformModule m@(Module _ mhead pragmas imports decls) =
             let pragmas' = modifyPragmas pragmas
                 imports' = modifyImports imports
             mapDecl transformFunDecl 
-                =<< mapDecl transformDecl
+                =<< mapDecl transformPieceDecl
                 =<< mapExp transformExp
+                =<< mapType transformCompType
                 =<< mapType transformType (Module () mhead pragmas' imports' decls)
         else return m
 transformModule _xml = throwError "transformModule not defined for xml formats" 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
-
--- | Transform a top level declaration to one or more new declarations
-transformDecl :: Decl () -> Transform [Decl ()]
-transformDecl (PieceDecl _ category headName cons derives) = 
-    let parname = getParName
-        cspar = map (parametConstructor parname category) cons
-        in
-    return (DataDecl 
-        ()
-        (DataType ())
-        Nothing 
-        (DHApp () (DHead () headName) (UnkindedVar () parname))
-        cspar
-        (deriveFunctor : derives)
-        : [deriveTHPiece headName])
-transformDecl (PieceCatDecl _ _) = return []
-transformDecl d = return [d]
 
 -- | Transform a type
 transformType :: Type () -> Transform (Type ())
@@ -66,15 +50,6 @@ transformType (TyForall _ mfa (Just ccx) mcx t) = do
     (mcx', vars) <- transformCompContext ccx mcx 
     t' <- mapType (exchangeToTerm vars) t
     return $ TyForall () mfa Nothing mcx' t'
-transformType (TyComp _ category types) = do
-    (cats, _) <- ask
-    catStr <- lift $ qNameStr "TyComp" category 
-    case Map.lookup category cats of
-        Nothing -> throwError $ "Trying to form type of unknown category: " ++ catStr
-        Just pieces -> do 
-            lift $ checkInCategory catStr pieces types
-            coprodtype <- coprod types
-            return $ TyApp () termName (TyParen () coprodtype)
 transformType t = return t
 
 -- | Transform an expression
@@ -114,45 +89,6 @@ toSmartCon (UnQual ()            (Ident () str)) = return $ UnQual ()           
 toSmartCon (Qual   () moduleName (Ident () str)) = return $ Qual   () moduleName (Ident () ('i' : str))
 toSmartCon qname                                 = throwError $ "Tried to transform unexpected expression \"" ++ prettyPrint qname ++ "\"." 
 
-{- | Parametrize a piece constructor to have a parametrized variable as recursive 
-    parameter instead of the name of the category it belongs to.
--}
-parametConstructor :: Name () -> QName () -> QualConDecl () -> QualConDecl ()
-parametConstructor parname category (QualConDecl _ v c conDecl) = 
-    QualConDecl () v c (parametCon conDecl)
-    where 
-        parametCon (ConDecl      _ cname types)       = ConDecl      () cname (parametType <$> types)
-        parametCon (InfixConDecl _ type1 cname type2) = InfixConDecl () (parametType type1) cname (parametType type2)
-        parametCon (RecDecl      _ cname fields)      = RecDecl      () cname (parametField <$> fields)
-        
-        parametField (FieldDecl _ names ty) = FieldDecl () names (parametType ty)
-        
-        parametType (TyCon _ recu) | recu == category = TyVar () parname
-        parametType t = t
-
-
--- TODO: Add deriving functor in tuple of one derive, not in list. 
--- (If we want user to be able to add deriving clauses)
--- Gives this error message for multiple deriving clauses:
--- Illegal use of multiple, consecutive deriving clauses
--- Use DerivingStrategies to allow this
-
--- | Create a Deriving functor for a given data type
-deriveFunctor :: Deriving ()
-deriveFunctor =
-  Deriving () Nothing
-    [IRule () Nothing 
-      Nothing Nothing 
-      (IHCon () (UnQual () (name "Functor")))]
-
-
-
--- | Get a name for the parametrized variable.            
--- TODO: Figure out how to handle unique names for parametrize variables
-getParName :: Name ()
-getParName = name "composable_types_recursive_var"
-
--- TODO: possibly more pragmas?
 -- | Modify a list of pragmas to remove ComposableTypes and add the ones needed for compdata
 modifyPragmas :: [ModulePragma ()] -> [ModulePragma ()]
 modifyPragmas ps =  foldr addPragma (removeCompTypes ps)
@@ -174,16 +110,6 @@ pragmasContain nam = any (matchPragma nam)
 matchPragma :: String -> ModulePragma () -> Bool
 matchPragma s (LanguagePragma _ [Ident _ nam]) = nam == s
 matchPragma _ _ = False
-
--- | Form coproduct type from a list of pieces
-coprod :: [QName ()] -> Transform (Type ())
-coprod [nam] = return $ TyCon () nam
-coprod (nam:ns) = do
-    rest <- coprod ns
-    return (TyInfix () (TyCon () nam)
-                      (UnpromotedName () (Qual () (ModuleName () "Data.Comp") (sym ":+:")))
-                       rest)
-coprod _ = throwError "Trying to form coproduct of no arguments"
 
 -- | Build signature of categories with empty maps
 buildSigCat :: [Decl ()] -> Except String Sig
@@ -249,13 +175,4 @@ importsContain nam = any (matchImport nam)
 -- | Check if an import declaration match the given String
 matchImport :: String -> ImportDecl () -> Bool
 matchImport s (ImportDecl {importModule = ModuleName _ nam}) = nam == s
-
--- | Check if all parts of a composition type are in the category
-checkInCategory :: String -> Set (QName ()) -> [QName ()] -> Except String ()
-checkInCategory _ _ [] = return ()
-checkInCategory category pieces (p:ps) = if Set.member p pieces
-    then checkInCategory category pieces ps
-    else do
-        pName <- qNameStr ("TyComp with " ++ show p) p
-        throwError $ "Piece: " ++ pName ++ " not found in category: " ++ category
 

@@ -717,13 +717,13 @@ Requires Composable Types extension
 >                        let {(vs,ss,_) = $3 ; l = $1 <> $5 <** ($2 : reverse ss ++ [$4]) } ;
 >                        return $ CompFunDecl l (v : reverse vs) fa ccx cx qn t } }
 
->       | 'ext' ctype 'for' qcon optvaldefs
+>       | 'ext' ctype type_app_list 'for' qcon optvaldefs
 >                {% do { 
 >                   checkEnabled ComposableTypes ;
 >                   (fa, ccx, cx, fn) <- checkCompFunExt $2 ;
->                   let { (mis,ss,minf) = $5 ;
->                         l = nIS $1 <++> nIS $3 <++> ann $4 <+?> minf <** ss };
->                   return $ CompFunExt l fa ccx cx fn $4 mis }}
+>                   let { (mis,ss,minf) = $6 ;
+>                         l = nIS $1 <++> ann $5 <+?> minf <** ss };
+>                   return $ CompFunExt l fa ccx cx fn $3 $5 mis }}
 
 >       | decl          { $1 }
 
@@ -1171,6 +1171,9 @@ Equality constraints require the TypeFamilies extension.
 > tyvars1 :: { ([Name L],L) }
 >       : tyvars tyvar                  { ($2 : fst $1, snd $1 <?+> ann $2) }
 
+> type_app_list :: { [Type L] }
+>       : '@' truectype type_app_list   { ($2 : $3) }
+>       |                               { [] }
 
 -----------------------------------------------------------------------------
 Functional Dependencies

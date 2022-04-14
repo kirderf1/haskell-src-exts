@@ -950,7 +950,7 @@ instance ExactP Decl where
         exactPC ca
         printString "->"
         exactPC t
-    CompFunExt l mtvs mccx mcx fn pn mids -> 
+    CompFunExt l mtvs mccx mcx fn types pn mids -> 
         case srcInfoPoints l of 
            _:pts -> do
               printString "ext"
@@ -968,6 +968,7 @@ instance ExactP Decl where
               maybeEP exactPC mccx
               maybeEP exactPC mcx
               exactPC fn
+              mapM ((printString "@" >>) . exactP) types
               printString "for"
               exactPC pn
               maybeEP (\ids -> do

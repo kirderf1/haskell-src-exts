@@ -54,8 +54,8 @@ instance ExpMap Decl where
             CompletePragma   l cs ty         -> return $ CompletePragma l cs ty
             PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh <$> (mapExp f `mapM` cds) <*> (mapExp f `mapM` ders)
             PieceCatDecl l ca                -> return $ PieceCatDecl l ca
-            CompFunDecl  l ns mtv mccx mcx ca t    -> CompFunDecl l ns <$> ((mapExp f `mapM`) `mapM` mtv) <*> return mccx <*> (mapExp f `mapM` mcx) <*> return ca <*> mapExp f t
-            CompFunExt   l mtv mccx mcx fn pn ids  -> CompFunExt l <$> ((mapExp f `mapM`) `mapM` mtv) <*> return mccx <*> (mapExp f `mapM` mcx) <*> return fn <*> return pn <*> ((mapExp f `mapM`) `mapM` ids)
+            CompFunDecl  l ns mtv mccx mcx ca t      -> CompFunDecl l ns <$> ((mapExp f `mapM`) `mapM` mtv) <*> return mccx <*> (mapExp f `mapM` mcx) <*> return ca <*> mapExp f t
+            CompFunExt   l mtv mccx mcx fn ts pn ids -> CompFunExt l <$> ((mapExp f `mapM`) `mapM` mtv) <*> return mccx <*> (mapExp f `mapM` mcx) <*> return fn <*> mapExp f `mapM` ts <*> return pn <*> ((mapExp f `mapM`) `mapM` ids)
             
 
 instance ExpMap PatternSynDirection where

@@ -2,6 +2,8 @@
 
 module AltTyVarInExt where
 
+import Control.Applicative (Alternative, empty)
+
 piececategory A
 
 data piece A ==> B = C

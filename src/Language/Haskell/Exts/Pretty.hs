@@ -591,13 +591,15 @@ instance  Pretty (Decl l) where
                       ++ [text "-:", ppForall mtvs, maybePP pretty mccx, maybePP pretty mcx
                          , pretty category, text "->", pretty qualType])
         
-        pretty (CompFunExt _ tvs mccx mcx funcName pieceName Nothing) =
-                        mySep ( [text "ext", ppForall tvs, maybePP pretty mccx, maybePP pretty mcx
-                                , pretty funcName, text "for", pretty pieceName, text "where" ])
-
-        pretty (CompFunExt _ tvs mccx mcx funcName pieceName mInstDecls) = 
+        pretty (CompFunExt _ tvs mccx mcx funcName types pieceName Nothing) =
                 mySep ( [text "ext", ppForall tvs, maybePP pretty mccx, maybePP pretty mcx
-                        , pretty funcName, text "for", pretty pieceName, text "where" ])
+                        , pretty funcName] ++ map ((char '@' <>) . pretty) types
+                        ++ [text "for", pretty pieceName, text "where" ])
+
+        pretty (CompFunExt _ tvs mccx mcx funcName types pieceName mInstDecls) = 
+                mySep ( [text "ext", ppForall tvs, maybePP pretty mccx, maybePP pretty mcx
+                        , pretty funcName] ++ map ((char '@' <>) . pretty) types
+                        ++ [text "for", pretty pieceName, text "where" ])
                 $$$ ppBody classIndent (fromMaybe [] ((ppDecls False) <$> mInstDecls ))
 
 instance Pretty (InstRule l) where

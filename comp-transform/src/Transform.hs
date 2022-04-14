@@ -23,7 +23,7 @@ import Control.Monad.Except
 type Sig = Map (QName ()) (Set (QName ()))
 
 -- | Set of all piece constructors
-type Constrs = Set String
+type Constrs = Set (QName ())
 
 -- | Transform monad containing signature of categories and handles error messages as Strings.
 type Transform = ReaderT (Sig, Constrs) (Except String)
@@ -115,32 +115,38 @@ transformType t = return t
 transformExp :: Exp () -> Transform (Exp ())
 transformExp a@(Con _ qcon) = do
     (_, constrs) <- ask
-    conStr <- lift $ qNameStr ("App with " ++ show qcon) qcon
-    if Set.member conStr constrs
-        then return $ Var () (UnQual () (Ident () ("i" ++ conStr)))
+    if Set.member qcon constrs
+        then do
+             smartCon <- toSmartCon qcon
+             return $ Var () smartCon
         else return a
 transformExp a@(InfixApp _ expr1 (QConOp _ qcon) expr2) = do
     (_, constrs) <- ask
-    conStr <- lift $ qNameStr ("InfixApp with " ++ show qcon) qcon
-    if Set.member conStr constrs
-        then return $ InfixApp () expr1
-            (QVarOp () (UnQual () (Ident () ("i" ++ conStr)))) expr2
+    if Set.member qcon constrs
+        then do
+             smartCon <- toSmartCon qcon
+             return $ InfixApp () expr1 (QVarOp () smartCon) expr2
         else return a
 transformExp a@(LeftSection _ expr (QConOp _ qcon)) = do
     (_, constrs) <- ask
-    conStr <- lift $ qNameStr ("LeftSection with " ++ show qcon) qcon
-    if Set.member conStr constrs
-        then return $ LeftSection () expr
-            (QVarOp () (UnQual () (Ident () ("i" ++ conStr))))
+    if Set.member qcon constrs
+        then do
+             smartCon <- toSmartCon qcon
+             return $ LeftSection () expr (QVarOp () smartCon)
         else return a
 transformExp a@(RightSection _ (QConOp _ qcon) expr) = do
     (_, constrs) <- ask
-    conStr <- lift $ qNameStr ("LeftSection with " ++ show qcon) qcon
-    if Set.member conStr constrs
-        then return $ RightSection ()
-            (QVarOp () (UnQual () (Ident () ("i" ++ conStr)))) expr
+    if Set.member qcon constrs
+        then do
+             smartCon <- toSmartCon qcon
+             return $ RightSection () (QVarOp () smartCon) expr
         else return a
 transformExp e = return e
+
+toSmartCon :: QName () -> Transform (QName ())
+toSmartCon (UnQual ()            (Ident () str)) = return $ UnQual ()            (Ident () ('i' : str))
+toSmartCon (Qual   () moduleName (Ident () str)) = return $ Qual   () moduleName (Ident () ('i' : str))
+toSmartCon qname                                 = throwError $ "Tried to transform unexpected expression \"" ++ prettyPrint qname ++ "\"." 
 
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 
     parameter instead of the name of the category it belongs to.
@@ -266,15 +272,11 @@ buildConstrs :: [Decl ()] -> Except String Constrs
 buildConstrs [] = return Set.empty
 buildConstrs ((PieceDecl _ _category _headName cons _derives):decls) = do
     constrs <- buildConstrs decls
-    nameStrs <- mapM (conStr ("Constructors of PieceDecl with " ++ show cons)) cons
-    return $ foldr Set.insert constrs nameStrs
-    where conStr :: String -> QualConDecl () -> Except String String
-          conStr err (QualConDecl _ _mForAll _mContext (ConDecl _ nam _types)) =
-              nameStr err nam
-          conStr err (QualConDecl _ _mForAll _mContext (InfixConDecl _ _type nam _types)) =
-              nameStr err nam
-          conStr err (QualConDecl _ _mForAll _mContext (RecDecl _ nam _fdecls)) = 
-              nameStr err nam
+    return $ foldr Set.insert constrs (qualConName <$> cons)
+    where qualConName (QualConDecl _ _mForAll _mContext conDecl) = UnQual () (conName conDecl)
+          conName (ConDecl _ nam _types) = nam
+          conName (InfixConDecl _ _type nam _types) = nam
+          conName (RecDecl _ nam _fdecls) = nam
 buildConstrs (_:decls) = buildConstrs decls
 
 -- | Modify a list of import declarations to add the ones needed for compdata

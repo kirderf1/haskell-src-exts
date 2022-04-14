@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Decls(mapDecl) where
+module Utils.Decls(mapDecl) where
 
 import Control.Monad.Except (MonadError, throwError, void)
 import Language.Haskell.Exts.Syntax

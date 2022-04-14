@@ -1,4 +1,4 @@
-module Names (collectUniqueVars) where
+module Utils.Names (collectUniqueVars) where
 
 import Language.Haskell.Exts
 

@@ -1,4 +1,4 @@
-module Exps(mapExp) where
+module Utils.Exps(mapExp) where
 
 import Language.Haskell.Exts.Syntax
 

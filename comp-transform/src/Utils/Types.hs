@@ -1,4 +1,4 @@
-module Types(mapType) where
+module Utils.Types(mapType) where
 
 import Language.Haskell.Exts.Syntax
 

@@ -5,10 +5,10 @@ module Transform (transform) where
 
 import Language.Haskell.Exts
 
-import Types
-import Decls
-import Exps
-import Names
+import Utils.Types
+import Utils.Decls
+import Utils.Exps
+import Utils.Names
 
 import           Data.Map   (Map)
 import qualified Data.Map as Map

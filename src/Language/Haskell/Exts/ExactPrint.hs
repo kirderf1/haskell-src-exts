@@ -968,7 +968,7 @@ instance ExactP Decl where
               maybeEP exactPC mccx
               maybeEP exactPC mcx
               exactPC fn
-              mapM ((printString "@" >>) . exactP) types
+              _ <- mapM ((printString "@" >>) . exactP) types
               printString "for"
               exactPC pn
               maybeEP (\ids -> do

@@ -70,11 +70,11 @@ transformDecl (PieceCatDecl _ _) = return []
 transformDecl (CompFunDecl _ names _mtvs mccx mcx category t) = do
     (sig, _) <- ask
     if Map.member category sig
-      then concat <$> (declsForName mccx mcx `mapM` names)
+      then concat <$> (declsForName `mapM` names)
       else throwError $ "Expected first argument to be a piece category, was: \"" ++ show category ++ "\""
   where
-    declsForName :: Maybe (CompContext ()) -> Maybe (Context ()) -> Name () -> Transform [Decl ()]
-    declsForName mccx mcx nam = do
+    declsForName :: Name () -> Transform [Decl ()]
+    declsForName nam = do
         (mcx', vars) <- case mccx of 
                 Nothing -> return (mcx, [])
                 Just ccx -> transformCompContext ccx mcx 
@@ -330,7 +330,7 @@ functionClass mcx className functionName t = do
         (Just [classFunctionDecl functionName funType])
   where
     buildType []         = DHApp () (DHead () className) (UnkindedVar () (name "f"))
-    buildType (var:vars) = DHApp () (buildType vars) (UnkindedVar () var)
+    buildType (v:vars) = DHApp () (buildType vars) (UnkindedVar () v)
 
         
 -- | Build the inner class declaration
@@ -344,7 +344,7 @@ transformFunType cname replType ty = do
     return (TyForall () Nothing Nothing (Just (CxSingle () (ParenA () (TypeA () (buildType $ collectUniqueVars ty))))) resT)
   where
     buildType []         = TyApp () (TyCon () (UnQual () cname)) (TyVar () (name "g"))
-    buildType (var:vars) = TyApp () (buildType vars) (TyVar () var)
+    buildType (v:vars) = TyApp () (buildType vars) (TyVar () v)
 
 -- | Build type for term with parametric part "g"
 termType :: Type ()
@@ -377,7 +377,7 @@ checkInCategory _ _ [] = return ()
 checkInCategory category pieces (p:ps) = if Set.member p pieces
     then checkInCategory category pieces ps
     else do
-    	pName <- qNameStr ("TyComp with " ++ show p) p
+        pName <- qNameStr ("TyComp with " ++ show p) p
         throwError $ "Piece: " ++ pName ++ " not found in category: " ++ category
     
     
@@ -464,7 +464,7 @@ constraintToAsst (FunConstraint _ fun v) = do
     return (Just (TypeA () (TyApp () (TyCon () cname) (TyVar () v))), v) 
 constraintToAsst (PieceConstraint _ piece v) = return (Just (TypeA () (TyInfix () (TyCon () piece) 
     (UnpromotedName () (Qual () (ModuleName () "Data.Comp") (Symbol () ":<:")))  (TyVar () v))), v)
-constraintToAsst (CategoryConstraint _ category v) = return (Nothing, v)
+constraintToAsst (CategoryConstraint _ _category v) = return (Nothing, v)
 
 -- | Change a type variable to be a term
 exchangeToTerm :: [Name ()] -> Type () -> Transform (Type ())
@@ -488,10 +488,10 @@ collectUniqueVars :: Type () -> [Name ()]
 collectUniqueVars = removeDups Set.empty . collectVars
   where
     removeDups _   []         = []
-    removeDups set (var:vars) =
-      if Set.member var set
+    removeDups set (v:vars) =
+      if Set.member v set
         then removeDups set vars
-        else var : removeDups (Set.insert var set) vars
+        else v : removeDups (Set.insert v set) vars
 
 class WithVar a where
     collectVars :: a l -> [Name l]

@@ -152,16 +152,17 @@ toSmartCon qname                                 = throwError $ "Tried to transf
     parameter instead of the name of the category it belongs to.
 -}
 parametConstructor :: Name () -> QName () -> QualConDecl () -> QualConDecl ()
-parametConstructor parname category (QualConDecl _ v c (ConDecl _ cname types)) = 
-    QualConDecl () v c (ConDecl () cname (map (parametType parname) types))
+parametConstructor parname category (QualConDecl _ v c conDecl) = 
+    QualConDecl () v c (parametCon conDecl)
     where 
-        -- TODO: Could there be other ways to form this construct?
-        parametType pname (TyCon _ recu) = 
-            if recu == category
-                then TyCon () (UnQual () pname)
-                else TyCon () recu
-        parametType _ t = t
-parametConstructor _ _ c = c 
+        parametCon (ConDecl      _ cname types)       = ConDecl      () cname (parametType <$> types)
+        parametCon (InfixConDecl _ type1 cname type2) = InfixConDecl () (parametType type1) cname (parametType type2)
+        parametCon (RecDecl      _ cname fields)      = RecDecl      () cname (parametField <$> fields)
+        
+        parametField (FieldDecl _ names ty) = FieldDecl () names (parametType ty)
+        
+        parametType (TyCon _ recu) | recu == category = TyVar () parname
+        parametType t = t
 
 
 -- TODO: Add deriving functor in tuple of one derive, not in list. 

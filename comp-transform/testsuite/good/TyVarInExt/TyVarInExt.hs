@@ -1,6 +1,6 @@
 {-# LANGUAGE ComposableTypes #-}
 
-module ContextInExt where
+module TyVarInExt where
 
 piececategory A
 

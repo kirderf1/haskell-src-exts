@@ -1,6 +1,6 @@
 {-# LANGUAGE ComposableTypes #-}
 
-module EvalEx where
+module EvalConstructExample where
 
 piececategory Expr
 

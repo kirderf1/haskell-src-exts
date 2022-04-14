@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+module MaybeE where
 import qualified Data.Comp
 import qualified Data.Comp.Derive
 import qualified Data.Comp.Show ()
@@ -32,4 +33,3 @@ $(
 e ::
   Int -> Maybe (Data.Comp.Term (B Data.Comp.:+: C Data.Comp.:+: D))
 e = undefined
-main = putStrLn $ "Det funkar!"

@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+module EvalWithArg where
 import qualified Data.Comp
 import qualified Data.Comp.Derive
 import qualified Data.Comp.Show ()
@@ -31,4 +32,3 @@ instance Eval B where
         eval' (D a) True = -eval a False
         eval' (D a) False = eval a True
         eval' (C i) _ = i
-main = putStrLn $ "Det funkar!"

@@ -4,7 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-module ContextInExt where
+module TyVarInExt where
 import qualified Data.Comp
 import qualified Data.Comp.Derive
 import qualified Data.Comp.Show ()

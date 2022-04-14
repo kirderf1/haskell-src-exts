@@ -1,6 +1,6 @@
 {-# LANGUAGE ComposableTypes #-}
 
-module Main where
+module CategoryInClass where
 
 class Category a where
     piececategory StmtS

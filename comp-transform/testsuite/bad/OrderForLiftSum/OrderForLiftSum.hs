@@ -1,6 +1,6 @@
 {-# LANGUAGE ComposableTypes #-}
 
-module Main where
+module OrderForLiftSum where
 
 piececategory A
 

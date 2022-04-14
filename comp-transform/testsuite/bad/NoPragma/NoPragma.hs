@@ -1,3 +1,3 @@
-module Main where 
+module NoPragma where 
 
 piececategory A

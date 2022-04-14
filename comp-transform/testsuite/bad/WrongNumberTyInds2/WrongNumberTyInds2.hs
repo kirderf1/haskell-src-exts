@@ -1,6 +1,6 @@
 {-# LANGUAGE ComposableTypes #-}
 
-module ContextInExt where
+module WrongNumberTyInds2 where
 
 piececategory A
 

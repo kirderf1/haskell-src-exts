@@ -1,6 +1,6 @@
 {-# LANGUAGE ComposableTypes #-}
 
-module Main where
+module ExpInStmt where
 
 piececategory Stmt Expr
 piececategory Expr

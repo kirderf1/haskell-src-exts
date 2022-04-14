@@ -1,5 +1,5 @@
 {-# LANGUAGE ComposableTypes #-}
 
-module Main where
+module PieceNoCategory where
 
 data piece Expr ==> Value = Const Int

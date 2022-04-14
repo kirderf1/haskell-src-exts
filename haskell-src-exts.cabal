@@ -108,6 +108,8 @@ Test-Suite test
 executable program
   main-is:          Testparse.hs
   other-modules:    Transform,
+                    FunctionTransform,
+                    TransformUtils,
                     Utils.Types,
                     Utils.Decls,
                     Utils.Exps,
@@ -125,6 +127,8 @@ executable program
 executable testsuite
   main-is:          TestRunner.hs
   other-modules:    Transform,
+                    FunctionTransform,
+                    TransformUtils,
                     Utils.Types,
                     Utils.Decls,
                     Utils.Exps,

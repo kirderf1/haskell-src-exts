@@ -1,0 +1,31 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
+module PieceOpInfixRecord where
+import qualified Data.Comp
+import qualified Data.Comp.Derive
+import qualified Data.Comp.Show ()
+import qualified Data.Comp.Equality ()
+
+data Op composable_types_recursive_var = composable_types_recursive_var
+                                           `Add` composable_types_recursive_var
+                                       | composable_types_recursive_var `Mult`
+                                           composable_types_recursive_var
+                                           deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''Op]
+  )
+
+data A composable_types_recursive_var = B{c ::
+                                          composable_types_recursive_var,
+                                          d :: Int}
+                                          deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''A]
+  )

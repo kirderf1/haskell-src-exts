@@ -1,0 +1,33 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ExplicitForAll #-}
+module ForallChecksContextInFun where
+import qualified Data.Comp
+import qualified Data.Comp.Derive
+import qualified Data.Comp.Show ()
+import qualified Data.Comp.Equality ()
+
+data B composable_types_recursive_var = B deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''B]
+  )
+
+class C f where
+        c' :: (C g) => f (Data.Comp.Term g) -> ()
+
+c :: (C g) => Data.Comp.Term g -> ()
+c = c' . Data.Comp.unTerm
+
+{-# NOINLINE c #-}
+
+$( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''C] )
+
+d ::
+  forall a e . (B Data.Comp.:<: a, C a, Show e) =>
+    Data.Comp.Term a -> e -> ((), Data.Comp.Term a)
+d a _ = (c a, iB)

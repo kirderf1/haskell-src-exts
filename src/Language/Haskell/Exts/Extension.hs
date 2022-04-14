@@ -599,7 +599,6 @@ impliesExts = go
                     TypeFamilyDependencies -> [TypeFamilies]
                     TypeInType          -> [PolyKinds, DataKinds, KindSignatures]
                     TypeOperators       -> [ExplicitNamespaces]
-                    ComposableTypes     -> [TemplateHaskell]
                     -- Deprecations
                     RecordPuns          -> [NamedFieldPuns]
                     PatternSignatures   -> [ScopedTypeVariables]

@@ -1,0 +1,60 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+module Desug where
+import qualified Data.Comp
+import qualified Data.Comp.Derive
+import qualified Data.Comp.Show ()
+import qualified Data.Comp.Equality ()
+
+data Value composable_types_recursive_var = Const Int
+                                              deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors]
+    [''Value]
+  )
+
+data Op composable_types_recursive_var = Add composable_types_recursive_var
+                                             composable_types_recursive_var
+                                       | Mult composable_types_recursive_var
+                                              composable_types_recursive_var
+                                           deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''Op]
+  )
+  
+data Sugar composable_types_recursive_var = Neg composable_types_recursive_var
+                                              deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''Sugar]
+  )
+
+type Sig = Data.Comp.Term (Value Data.Comp.:+: Op)
+
+type Sig2 = Data.Comp.Term (Value Data.Comp.:+: Op Data.Comp.:+: Sugar)
+
+class Desug f a where
+        desug' :: (Desug g a) => f (Data.Comp.Term g) -> Data.Comp.Term a
+
+desug :: (Desug g a) => Data.Comp.Term g -> Data.Comp.Term a
+desug = desug' . Data.Comp.unTerm
+
+{-# NOINLINE desug #-}
+
+$( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''Desug] )
+
+instance (Value Data.Comp.:<: a) => Desug Value a where
+        desug' c = c
+
+instance (Op Data.Comp.:<: a) => Desug Op a where
+        desug' (Add e1 e2) = iAdd (desug e1) (desug e2)
+        desug' (Mult e1 e2) = iMult (desug e1) (desug e2)
+        
+instance (Value Data.Comp.:<: a, Op Data.Comp.:<: a) => Desug Sugar a where
+        desug' (Neg e) = iConst (-1) `iMult` (desug e)

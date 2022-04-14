@@ -110,7 +110,8 @@ executable program
   other-modules:    Transform,
                     Types,
                     Decls,
-                    Exps
+                    Exps,
+                    Names
   Build-Tools:      happy >= 1.19
   build-depends:    array >= 0.1, pretty >= 1.0,
                     base >= 4.5 && < 5,
@@ -126,7 +127,8 @@ executable testsuite
   other-modules:    Transform,
                     Types,
                     Decls,
-                    Exps
+                    Exps,
+                    Names
   Build-Tools:      happy >= 1.19
   build-depends:    array >= 0.1, pretty >= 1.0,
                     base >= 4.5 && < 5,

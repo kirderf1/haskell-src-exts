@@ -20,7 +20,7 @@ import Control.Monad.Reader
 import Control.Monad.Except
 
 -- | Map of category names to pieces
-type Sig = Map (QName ()) (Set String)
+type Sig = Map (QName ()) (Set (QName ()))
 
 -- | Set of all piece constructors
 type Constrs = Set String
@@ -106,14 +106,9 @@ transformType (TyComp _ category types) = do
     case Map.lookup category cats of
         Nothing -> throwError $ "Trying to form type of unknown category: " ++ catStr
         Just pieces -> do 
-            typeNames <- mapM (lift . pieceName) types
-            lift $ checkInCategory catStr pieces typeNames
+            lift $ checkInCategory catStr pieces types
             coprodtype <- coprod types
             return $ TyApp () termName (TyParen () coprodtype)
-      where pieceName :: QName () -> Except String String
-            pieceName qnam@(Qual _ _moduleName nam) = nameStr ("TyComp with " ++ show qnam) nam
-            pieceName qnam@(UnQual _ nam) = nameStr ("TyComp with " ++ show qnam) nam
-            pieceName _ = throwError "Unexpected special QName in part of TyComp."
 transformType t = return t
 
 -- | Transform an expression
@@ -259,9 +254,8 @@ buildSigPiece :: [Decl ()] -> Sig -> Except String Sig
 buildSigPiece [] sig = return sig
 buildSigPiece  ((PieceDecl _ category headName _cons _derives):decls) sig = do
     sig' <- buildSigPiece decls sig
-    headStr <- nameStr ("PieceDecl with " ++ show headName) headName
     case Map.lookup category sig' of
-        Just oldCons -> return $ Map.insert category (Set.insert headStr oldCons) sig'
+        Just oldCons -> return $ Map.insert category (Set.insert (UnQual () headName) oldCons) sig'
         Nothing -> do
             catStr <- qNameStr ("Category in PieceDecl") category 
             throwError $ "Category \"" ++ catStr ++ "\" not declared."
@@ -375,11 +369,13 @@ liftSum :: Name () -> Decl ()
 liftSum className = SpliceDecl () (SpliceExp () (ParenSplice () (app (app (deriveTHListElem "derive") (List () [deriveTHListElem "liftSum"])) (List () [TypQuote () (UnQual () className)]))))
 
 -- | Check if all parts of a composition type are in the category
-checkInCategory :: String -> Set String -> [String] -> Except String ()
+checkInCategory :: String -> Set (QName ()) -> [QName ()] -> Except String ()
 checkInCategory _ _ [] = return ()
 checkInCategory category pieces (p:ps) = if Set.member p pieces
     then checkInCategory category pieces ps
-    else throwError $ "Piece: " ++ show p ++ " not found in category: " ++ category
+    else do
+    	pName <- qNameStr ("TyComp with " ++ show p) p
+        throwError $ "Piece: " ++ pName ++ " not found in category: " ++ category
     
     
 -- | Create instance head (roughly the first line of an instance declaration)

@@ -71,7 +71,9 @@ transformDecl (CompFunDecl _ names _mtvs mccx mcx category t) = do
     (sig, _) <- ask
     if Map.member category sig
       then concat <$> (declsForName `mapM` names)
-      else throwError $ "Expected first argument to be a piece category, was: \"" ++ show category ++ "\""
+      else do
+          catStr <- lift $ qNameStr "CompFunDecl" category
+          throwError $ "Expected first argument to be a piece category, was: \"" ++ catStr ++ "\""
   where
     declsForName :: Name () -> Transform [Decl ()]
     declsForName nam = do

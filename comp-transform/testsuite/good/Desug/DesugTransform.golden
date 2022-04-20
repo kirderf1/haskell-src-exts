@@ -53,7 +53,7 @@ desug = desug' . Data.Comp.unTerm
 $( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''Desug] )
 
 instance Value Data.Comp.:<: a => Desug Value a where
-        desug' c = Data.Comp.inject c
+        desug' (Const c) = iConst c
 
 instance Op Data.Comp.:<: a => Desug Op a where
         desug' (Add e1 e2) = iAdd (desug e1) (desug e2)

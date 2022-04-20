@@ -1,0 +1,36 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
+module PatternMatching2 where
+import qualified Data.Comp
+import qualified Data.Comp.Derive
+import qualified Data.Comp.Show ()
+import qualified Data.Comp.Equality ()
+
+data B composable_types_recursive_var = B Int
+                                          deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''B]
+  )
+
+data C composable_types_recursive_var = C deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''C]
+  )
+
+d :: Data.Comp.Term (B) -> Int
+d a
+  = case a of
+        (Term (B i)) -> i
+
+e :: Data.Comp.Term (B Data.Comp.:+: C) -> Int
+e a
+  = case a of
+        (Term (Inl (B i))) -> i
+        (Term (Inr C)) -> 0

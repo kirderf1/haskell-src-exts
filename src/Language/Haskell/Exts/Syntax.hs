@@ -718,6 +718,7 @@ data Asst l
         = TypeA l (Type l)                      -- ^ type assertion
         | IParam l (IPName l) (Type l)          -- ^ implicit parameter assertion
         | ParenA l (Asst l)                     -- ^ parenthesised class assertion
+        | CompCont l (Constraint l)             -- ^ constraint for composable types
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
 -- | /literal/
@@ -1622,10 +1623,12 @@ instance Annotated Asst where
         TypeA l _        -> l
         IParam l _ _     -> l
         ParenA l _       -> l
+        CompCont l _     -> l
     amap f asst = case asst of
         TypeA l t           -> TypeA (f l) t
         IParam l ipn t      -> IParam (f l) ipn t
         ParenA l a          -> ParenA (f l) a
+        CompCont l c        -> CompCont (f l) c
 
 instance Annotated Literal where
     ann lit = case lit of

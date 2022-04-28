@@ -323,7 +323,8 @@ data PType l
      | TyBang l (BangType l) (Unpackedness l) (PType l) -- ^ Strict type marked with \"@!@\" or type marked with UNPACK pragma.
      | TyWildCard l (Maybe (Name l))            -- ^ Type wildcard
      | TyQuasiQuote l String String             -- ^ @[qq| |]@
-     | TyComp l (QName l) [QName l]               -- ^ Type  composition, e.g. C ==> (A, B)
+     | TyComp l (QName l) [QName l]             -- ^ Type  composition, e.g. C ==> (A, B)
+     | TyCompCont l (Constraint l)              -- ^ Context for constraints for composable types
   deriving (Eq, Show, Functor)
 
 instance Annotated PType where
@@ -342,13 +343,14 @@ instance Annotated PType where
       TyInfix l _ _ _               -> l
       TyKind  l _ _                 -> l
       TyPromoted l   _              -> l
-      TyEquals l _ _                 -> l
+      TyEquals l _ _                -> l
       TyPred l _                    -> l
       TySplice l _                  -> l
-      TyBang  l _ _ _                 -> l
+      TyBang  l _ _ _               -> l
       TyWildCard  l _               -> l
       TyQuasiQuote l _ _            -> l
       TyComp l _ _                  -> l
+      TyCompCont l _                -> l
     amap f t' = case t' of
       TyForall l mtvs mcs mcx t     -> TyForall (f l) mtvs mcs mcx t
       TyStar  l                     -> TyStar (f l)
@@ -371,11 +373,13 @@ instance Annotated PType where
       TyWildCard l mn               -> TyWildCard (f l) mn
       TyQuasiQuote l n s            -> TyQuasiQuote (f l) n s
       TyComp l c t                  -> TyComp (f l) c t
+      TyCompCont l c                -> TyCompCont (f l) c
 
 data PAsst l
     = TypeA l (PType l)
     | IParam l (IPName l) (PType l)
     | ParenA l (PAsst l)
+    | CompCont l (Constraint l)
   deriving (Eq, Show, Functor)
 
 instance Annotated PAsst where
@@ -383,7 +387,9 @@ instance Annotated PAsst where
         TypeA l _           -> l
         IParam l _ _        -> l
         ParenA l _          -> l
+        CompCont l _        -> l
     amap f asst = case asst of
         TypeA l t           -> TypeA (f l) t
         IParam l ipn t      -> IParam (f l) ipn t
         ParenA l a          -> ParenA (f l) a
+        CompCont l c        -> CompCont (f l) c

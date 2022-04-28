@@ -201,6 +201,7 @@ checkAssertion (TyPred _ p) = checkAAssertion p
 -- We cannot even get here unless TypeFamilies or GADTs is enabled.
 -- N.B.: this is called only when the equality assertion is part of a
 -- tuple
+checkAssertion (TyCompCont l c) = return $ CompCont l c
 checkAssertion t' = do
         t'' <- checkAssertion' id [] t'
         return $ TypeA (ann t'') t''
@@ -295,6 +296,9 @@ checkAsst asst =
       ParenA l a      -> do
                 a' <- checkAsst a
                 return $ S.ParenA l a'
+      CompCont l c    -> do
+                c' <- checkCompConstr c
+                return $ S.CompCont l c'
                 
 -----------------------------------------------------------------------------
 -- Checking Headers
@@ -1363,3 +1367,8 @@ checkCompFunDeclType (TyFun _ (TyCon _ qn) t)  = do
     t' <- checkType t
     return (qn, t')
 checkCompFunDeclType _ = fail "Illegal composable function declaration"
+
+
+
+checkCompConstr :: Constraint L -> P(Constraint L)
+checkCompConstr c = return c

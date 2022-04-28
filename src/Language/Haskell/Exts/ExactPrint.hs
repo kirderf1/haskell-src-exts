@@ -1259,6 +1259,7 @@ instance ExactP Asst where
             exactPC asst'
             printStringAt (pos b) ")"
          _ -> errorEP "ExactP: Asst: ParenA is given wrong number of srcInfoPoints"
+    CompCont _ c -> exactP c
 
 instance ExactP Deriving where
   exactP (Deriving l mds ihs) =

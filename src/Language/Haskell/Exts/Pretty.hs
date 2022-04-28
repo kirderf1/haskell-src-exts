@@ -1406,6 +1406,7 @@ instance  Pretty (Asst l) where
         pretty (TypeA _ t)       = pretty t
         pretty (IParam _ i t)    = myFsep [pretty i, text "::", pretty t]
         pretty (ParenA _ a)      = parens (pretty a)
+        pretty (CompCont _ c)    = pretty c
 
 -- Pretty print a source location, useful for printing out error messages
 instance Pretty SrcLoc where

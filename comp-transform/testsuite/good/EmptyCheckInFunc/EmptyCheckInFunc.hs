@@ -2,5 +2,5 @@
 
 module EmptyCheckInFunc where
 
-d :: for (). a -> a
+d :: () => a -> a
 d a = a

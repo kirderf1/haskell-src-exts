@@ -9,5 +9,5 @@ data piece A ==> B = B
 
 c -: A -> ()
 
-d :: forall a e. for (A ==> a, B in a, c for a). Show e => a -> e -> ((), a)
+d :: forall a e. (A ==> a, B with a, a with c, Show e) => a -> e -> ((), a)
 d a _ = (c a, B)

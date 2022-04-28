@@ -954,8 +954,8 @@ instance Pretty (CompContext l) where
     pretty (CompCxTuple _ cs)  = mySep [parenList (map pretty cs)]
 
 instance Pretty (Constraint l) where
-    pretty (FunConstraint _ qn n) = myFsep [pretty qn, text "for", pretty n]
-    pretty (PieceConstraint _ qn n) = myFsep [pretty qn, text "in", pretty n]
+    pretty (FunConstraint _ qn n) = myFsep [pretty n, text "wiht", pretty qn]
+    pretty (PieceConstraint _ qn n) = myFsep [pretty qn, text "partof", pretty n]
     pretty (CategoryConstraint _ qn n) = myFsep [pretty qn, text "==>", pretty n]
 
 

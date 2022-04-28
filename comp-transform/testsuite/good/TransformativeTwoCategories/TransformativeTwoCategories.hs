@@ -14,12 +14,12 @@ piececategory Text
 data piece Text ==> T = T String
 data piece Text ==> T2 = T2 Text String Text
 
-transform -: for (Text ==> a) . Expr -> a
+transform -: (Text ==> a) => Expr -> a
 
-ext for (T in a) . transform @a for Value where
+ext (T partof a) => transform @a for Value where
     transform (Const c) = T $ show c
     
-ext for (T2 in a) . transform @a for Op where
+ext (T2 partof a) => transform @a for Op where
     transform (Add e1 e2) = T2 (transform e1) "+" (transform e2)
     transform (Mult e1 e2) = T2 (transform e1) "*" (transform e2)
 

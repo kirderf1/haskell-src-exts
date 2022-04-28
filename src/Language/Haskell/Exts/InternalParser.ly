@@ -273,6 +273,9 @@ Reserved Ids
 >       'piececategory' { Loc $$ KW_PieceCategory } -- for ComposableTypes
 >       'for'           { Loc $$ KW_For } -- for ComposableTypes
 >       'ext'           { Loc $$ KW_Ext } -- for ComposableTypes
+>       'with'          { Loc $$ KW_With } -- for ComposableTypes
+>       'partof'        { Loc $$ KW_PartOf } -- for ComposableTypes
+
 
 Pragmas
 
@@ -1052,6 +1055,7 @@ the (# and #) lexemes. Kinds will be handled at the kind rule.
 >       | QUASIQUOTE                    { let Loc l (THQuasiQuote (n,q)) = $1 in TyQuasiQuote (nIS l) n q }
 >       | qcon '==>' '(' comp_list ')'  { let (_, names) = $4 in TyComp (ann $1 <++> nIS $5) $1 names }
 >       | qcon '==>' qcon               { TyComp (ann $1 <++> ann $3) $1 [$3] }
+>       | constraint                    { TyCompCont (ann $1) $1 }
 >       | ptype_(ostar,kstar)           { % checkEnabled DataKinds >> return (TyPromoted (ann $1) $1) }
 
 > ptype_(ostar,kstar) :: { Promoted L }
@@ -1127,7 +1131,7 @@ is any of the keyword-enabling ones, except ExistentialQuantification.
 
 > ctype_(ostar,kstar) :: { PType L }
 >       : 'forall' ktyvars '.' ctype_(ostar,kstar)      { mkTyForall (nIS $1 <++> ann $4 <** [$1,$3]) (Just (reverse (fst $2))) Nothing Nothing $4 }
->       | 'for' compcontext '.' ctype_(ostar,kstar)     { mkTyForall (nIS $1 <++> ann $4 <** [$1,$3]) Nothing (Just $2) Nothing $4 }
+       | 'for' compcontext '.' ctype_(ostar,kstar)     { mkTyForall (nIS $1 <++> ann $4 <** [$1,$3]) Nothing (Just $2) Nothing $4 }
 >       | context_(ostar,kstar) ctype_(ostar,kstar)     { mkTyForall ($1 <> $2) Nothing Nothing (Just $1) $2 }
 >       | type_(ostar,kstar)                            { $1 }
 
@@ -2243,23 +2247,23 @@ Deriving strategies
 -----------------------------------------------------------------------------
 Context with constraints for composable types
 
-> compcontext :: { CompContext L }
->       : '(' constraints ')'    {% do { let {  (cs,ss) = $2 ;
->                                               l = nIS $1 <++> nIS $3 <** ss } ; 
->                                        return (CompCxTuple l (reverse cs) ) } }
->       | constraint             { CompCxSingle (ann $1) $1 }
->       | '(' ')'                { CompCxEmpty (nIS $1 <++> nIS $2) }
+ compcontext :: { CompContext L }
+       : '(' constraints ')'    {% do { let {  (cs,ss) = $2 ;
+                                               l = nIS $1 <++> nIS $3 <** ss } ; 
+                                        return (CompCxTuple l (reverse cs) ) } }
+       | constraint             { CompCxSingle (ann $1) $1 }
+       | '(' ')'                { CompCxEmpty (nIS $1 <++> nIS $2) }
 
-> constraints :: { ([Constraint L],[S]) }
->       : constraints ',' constraint    { ($3 : fst $1 , $2 : snd $1) }
->       | constraint                    { ([$1] , []) }
+ constraints :: { ([Constraint L],[S]) }
+       : constraints ',' constraint    { ($3 : fst $1 , $2 : snd $1) }
+       | constraint                    { ([$1] , []) }
 
 > constraint :: { Constraint L }
->       : qvar 'for' var        {% do { let { l = ann $1 <++> nIS $2 <++> ann $3 } ;
->                                       return (FunConstraint l $1 $3) } }
->       | qcon 'in' var         {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
+>       : tyvar 'with' qvar     {% do { let { l = ann $1 <++> nIS $2 <++> ann $3 } ;
+>                                       return (FunConstraint l $3 $1) } }
+>       | qcon 'partof' tyvar         {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
 >                                       return (PieceConstraint l $1 $3) } }
->       | qcon '==>' var        {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
+>       | qcon '==>' tyvar        {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
 >                                       return (CategoryConstraint l $1 $3) } }
 
 

@@ -2,10 +2,10 @@ module Utils.Types(mapType, TypeTransform) where
 
 import Language.Haskell.Exts.Syntax
 
-type TypeTransform m = Type l -> m (Type l)
+type TypeTransform l m = Type l -> m (Type l)
 
 class TypeMap a where
-    mapType :: (Monad m) => TypeTransform -> a l -> m (a l)
+    mapType :: (Monad m) => TypeTransform l m -> a l -> m (a l)
 
 instance TypeMap Module where
     mapType f (Module l mmh ops iss dcls) =

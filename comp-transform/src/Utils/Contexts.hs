@@ -3,10 +3,10 @@ module Utils.Contexts(mapContext) where
 import Language.Haskell.Exts.Syntax
 import Utils.Types 
 
-type ContextTransform m = Context l -> m (Context l, ContextMap m)
+type ContextTransform l m = Context l -> m (Context l, ContextMap m)
 
 class ContextMap a where
-    mapContext :: (Monad m) => ContextTransform m -> a l -> m (a l)
+    mapContext :: (Monad m) => ContextTransform l m -> a l -> m (a l)
 
 instance ContextMap Module where
     mapContext f (Module l mmh ops iss dcls) =

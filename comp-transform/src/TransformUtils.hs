@@ -90,22 +90,22 @@ exchangeToTerm _ t = return t
 
 
 -- | Transform compcontext into regular context
-transformCompContext :: CompContext () -> Maybe (Context ()) -> Transform ((Maybe (Context ()), [Name ()]))
+transformCompContext :: CompContext () -> Maybe (Context ()) -> Transform (Maybe (Context ()), [Name ()])
 transformCompContext (CompCxEmpty _) mcx = addToContext [] mcx
 transformCompContext (CompCxSingle _ constraint) mcx = addToContext [constraint] mcx
 transformCompContext (CompCxTuple _ constraints) mcx = addToContext constraints mcx
 
 -- | Add constraints to context instead
-addToContext :: [Constraint ()] -> Maybe (Context ()) -> Transform ((Maybe (Context ()), [Name ()]))
+addToContext :: [Constraint ()] -> Maybe (Context ()) -> Transform (Maybe (Context ()), [Name ()])
 addToContext cs Nothing =  addToContext' cs []
 addToContext cs (Just (CxEmpty _)) = addToContext' cs []
 addToContext cs (Just (CxSingle _ asst)) =  addToContext' cs [asst]
 addToContext cs (Just (CxTuple _ assts)) =  addToContext' cs assts
 
 -- | Add constraints to assertions in a context
-addToContext' :: [Constraint ()] -> [Asst ()] -> Transform ((Maybe (Context ()), [Name ()]))
+addToContext' :: [Constraint ()] -> [Asst ()] -> Transform (Maybe (Context ()), [Name ()])
 addToContext' cs assts = do
-    (assts', vars) <- addToAssts cs assts     
+    (assts', vars) <- addToAssts cs assts   
     return $ (Just (contextFromList assts'), vars)
 
 -- | Create context from list of assertions
@@ -115,7 +115,7 @@ contextFromList [a] = CxSingle () a
 contextFromList as = CxTuple () as
 
 -- | Add constraints to list of assertions
-addToAssts :: [Constraint ()] -> [Asst ()] -> Transform (([Asst ()], [Name ()]))
+addToAssts :: [Constraint ()] -> [Asst ()] -> Transform ([Asst ()], [Name ()])
 addToAssts cs as = do 
     asstvars <- mapM constraintToAsst cs
     let (csAssts, vars) = unzip asstvars
@@ -130,3 +130,21 @@ constraintToAsst (PieceConstraint _ piece v) = return (Just (TypeA () (TyInfix (
     (UnpromotedName () subName)  (TyVar () v))), v)
 constraintToAsst (CategoryConstraint _ _category v) = return (Nothing, v)
 
+
+
+transformContext :: Context () -> Transform (Maybe (Context ()), [Name ()])
+transformContext (CxEmpty _) = return (Just (CxEmpty ()), [])
+transformContext (CxSingle _ asst) = transformContext' [asst]     
+transformContext (CxTuple _ assts) = transformContext' assts
+
+transformContext' :: [Asst ()] -> Transform (Maybe (Context ()), [Name ()])
+transformContext' assts = do
+    asstvars <- mapM transformAsst assts 
+    let (assts', vars) = unzip asstvars
+    return (Just (contextFromList (catMaybes assts')), catMaybes vars)
+
+transformAsst :: Asst () -> Transform (Maybe (Asst ()), Maybe (Name ()))
+transformAsst (CompCont _ constraint) = do
+    (masst, v) <- constraintToAsst constraint
+    return (masst, (Just v))
+transformAsst asst = return (Just asst, Nothing) 

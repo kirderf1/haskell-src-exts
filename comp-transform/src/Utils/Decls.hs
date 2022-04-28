@@ -206,6 +206,7 @@ instance DeclMap Asst where
         TypeA l t           -> TypeA l <$> mapDecl f t
         IParam l ipn t      -> IParam l ipn <$> mapDecl f t
         ParenA l a          -> ParenA l <$> mapDecl f a
+        CompCont l c        -> return $ CompCont l c
 
 instance DeclMap Exp where
     mapDecl f e1 = case e1 of

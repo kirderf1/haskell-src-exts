@@ -56,6 +56,7 @@ instance WithVar Asst where
         TypeA _ t           -> collectVars t
         IParam _ ipn t      -> undefined
         ParenA _ a          -> collectVars a
+        CompCont _ c        -> []
 
 instance WithVar CompContext where
     collectVars (CompCxSingle _ c ) = collectVars c

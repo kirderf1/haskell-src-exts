@@ -46,10 +46,14 @@ transformModule _xml = throwError "transformModule not defined for xml formats"
 
 -- | Transform a type
 transformType :: Type () -> Transform (Type ())
-transformType (TyForall _ mfa (Just ccx) mcx t) = do
-    (mcx', vars) <- transformCompContext ccx mcx 
+--transformType (TyForall _ mfa (Just ccx) mcx t) = do
+--    (mcx', vars) <- transformCompContext ccx mcx 
+--    t' <- mapType (exchangeToTerm vars) t
+--    return $ TyForall () mfa Nothing mcx' t'
+tranformType (TyForall _ mfa Nothing (Just cx) t) = do
+    (mcx', vars) <- transformContext cx
     t' <- mapType (exchangeToTerm vars) t
-    return $ TyForall () mfa Nothing mcx' t'
+    return $ TyForall() mfa Nothing mcx' t'
 transformType t = return t
 
 -- | Transform an expression

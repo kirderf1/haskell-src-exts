@@ -191,6 +191,7 @@ instance TypeMap Asst where
         TypeA l t           -> TypeA l <$> mapType f t
         IParam l ipn t      -> IParam l ipn <$> mapType f t
         ParenA l a          -> ParenA l <$> mapType f a
+        CompCont l c        -> return $ CompCont l c
 
 instance TypeMap Exp where
     mapType f e1 = case e1 of

@@ -23,9 +23,13 @@ transformFunDecl (CompFunDecl _ names _mtvs mccx mcx category t) = do
   where
     declsForName :: Name () -> Transform [Decl ()]
     declsForName nam = do
-        (mcx', vars) <- case mccx of 
+--        (mcx', vars) <- case mccx of 
+--                Nothing -> return (mcx, [])
+--                Just ccx -> transformCompContext ccx mcx 
+--        t' <- mapType (exchangeToTerm vars) t
+        (mcx', vars) <- case mcx of 
                 Nothing -> return (mcx, [])
-                Just ccx -> transformCompContext ccx mcx 
+                Just cx -> transformContext cx 
         t' <- mapType (exchangeToTerm vars) t
         className <- toClassName nam
         funcName <- toFuncName nam

@@ -191,6 +191,7 @@ instance ExpMap Asst where
         TypeA l t           -> TypeA l <$> mapExp f t
         IParam l ipn t      -> IParam l ipn <$> mapExp f t
         ParenA l a          -> ParenA l <$> mapExp f a
+        CompCont l c        -> return $ CompCont l c
 
 instance ExpMap Exp where
     mapExp f e1 = f =<< case e1 of

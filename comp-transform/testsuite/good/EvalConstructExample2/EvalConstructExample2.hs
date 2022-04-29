@@ -25,5 +25,5 @@ ext eval for Op where
 evalEx :: Int
 evalEx = eval (expr :: Sig)
 
-expr :: for (Value in a, Op in a). a
+expr :: (Value partof a, Op partof a) => a
 expr = Const 1 `Add` (Const 2 `Mult` Const 2)

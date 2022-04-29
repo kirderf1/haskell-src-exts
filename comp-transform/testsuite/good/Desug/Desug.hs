@@ -11,7 +11,7 @@ data piece Expr ==> Sugar = Neg Expr
 type Sig = Expr ==> (Value, Op)
 type Sig2 = Expr ==> (Value, Op, Sugar)
 
-desug -: for (Expr ==> a) . Expr -> a
+desug -: (Expr ==> a) => Expr -> a
 
 ext (Value partof a) => desug @a for Value where
     desug (Const c) = Const c

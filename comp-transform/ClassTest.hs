@@ -25,8 +25,12 @@ $(
   Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''Val,''Op,''Sugar]
   )  
 
-
-type Sig = Data.Comp.Term (Val Data.Comp.:+: Op Data.Comp.:+: Sugar)
+class Cat a 
+    
+    
+instance Cat (Data.Comp.Term a)  
+  
+type Sig' = Data.Comp.Term (Val Data.Comp.:+: Op Data.Comp.:+: Sugar)
 
 class Desug f a where
     desug' :: (Desug g a) => f (Data.Comp.Term g) ->  a 
@@ -54,14 +58,37 @@ instance (PartOf Val a, PartOf Op a) =>
         
 class PartOf a b where
     inject' :: a b -> b
+    project' :: b -> Maybe (a b)
     
 instance (a Data.Comp.:<: b) => PartOf a (Data.Comp.Term b) where
     inject' = Data.Comp.inject
+    project' = Data.Comp.project
    
    
 iConst' x = inject' $ Const x
 iAdd' x y = inject' $ Add x y
 iMult' x y = inject' $ Mult x y
+iNeg' x = inject' $ Neg x
+
+
+class Desug' g a where
+    desug'' :: g -> a
+    
+instance Desug g a => Desug' (Data.Comp.Term g) a where
+    desug'' = desug' . Data.Comp.unTerm
+    
+    
+class Eval' g where
+    eval'' :: g -> Int
+    
+instance Eval g => Eval' (Data.Comp.Term g) where
+    eval'' = eval' . Data.Comp.unTerm
+    
+    
+
+    
+    
+--------------------------------
 
   
     
@@ -82,20 +109,33 @@ instance Eval Op where
         eval' (Add e1 e2) = eval e1 + eval e2
         eval' (Mult e1 e2) = eval e1 * eval e2
         
---evalEx :: Int
---evalEx = eval (expr :: Sig)
+evalEx :: Int
+evalEx = eval (expr :: Sig)
 
 expr ::
-       (Val Data.Comp.:<: a, Op Data.Comp.:<: a) => Data.Comp.Term a
-expr = iConst 1 `iAdd` (iConst 2 `iMult` iConst 2)
+       (PartOf Val a, PartOf Op a) => a
+expr = iConst' 1 `iAdd'` (iConst' 2 `iMult'` iConst' 2)
 
-sugarEx :: (Val Data.Comp.:<: a, Op Data.Comp.:<: a, Sugar Data.Comp.:<: a) => Data.Comp.Term a 
-sugarEx = iNeg expr 
+sugarEx :: (PartOf Val a, PartOf Op a, PartOf Sugar a, Cat a) => a 
+sugarEx = iNeg' expr 
 
-type Sig' = Data.Comp.Term (Val Data.Comp.:+: Op)
+type Sig = Data.Comp.Term (Val Data.Comp.:+: Op)
 
 desugEx :: Int
-desugEx = eval $ (desug (sugarEx :: Sig) :: Sig')
+desugEx = eval $ (desug (sugarEx :: Sig') :: Sig)
 
-main = print desugEx
+desugEx2 :: Desug' f a => f -> a
+desugEx2 = desug''
+
+desugEx2' :: Int
+desugEx2' = eval $ (desugEx2 (sugarEx :: Sig') :: Sig)
+
+evalEx2 :: Eval' e => e -> Int
+evalEx2 = eval''
+
+evalEx2' :: Int
+evalEx2' = eval'' (expr :: Sig) 
+
+main = print --evalEx2' 
+    desugEx2'
 

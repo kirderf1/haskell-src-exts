@@ -17,9 +17,9 @@ stringifyS -: Stmt e -> String
 stringifyE -: Expr -> String
 
 --instance (StringifyS stmt, StringifyE exp) => StringifyS (Assign exp stmt) where
-ext for (stringifyE for e). stringifyS @e for Assign where
+ext e with stringifyE => stringifyS @e for Assign where
     stringifyS (Assign var exp) = var ++ " = " ++ stringifyE exp
-ext for (stringifyE for e). stringifyS @e for If where
+ext e with stringifyE => stringifyS @e for If where
     stringifyS (If exp stmt) = "if (" ++ stringifyE exp ++ ") " ++ stringifyS stmt
 
 ext stringifyE for Literal where

@@ -1,0 +1,94 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances #-}
+module TransforativeTwoCategories2 where
+import qualified Data.Comp
+import qualified Data.Comp.Derive
+import qualified Data.Comp.Show ()
+import qualified Data.Comp.Equality ()
+
+data Value composable_types_recursive_var = Const Int
+                                              deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors]
+    [''Value]
+  )
+
+data Op composable_types_recursive_var = Add composable_types_recursive_var
+                                             composable_types_recursive_var
+                                       | Mult composable_types_recursive_var
+                                              composable_types_recursive_var
+                                           deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''Op]
+  )
+
+data PairOp composable_types_recursive_var = Fst composable_types_recursive_var
+                                                 composable_types_recursive_var
+                                           | Snd composable_types_recursive_var
+                                                 composable_types_recursive_var
+                                           | Double composable_types_recursive_var
+                                               deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors]
+    [''PairOp]
+  )
+
+type Sig =
+     Data.Comp.Term (Value Data.Comp.:+: Op Data.Comp.:+: PairOp)
+
+data T composable_types_recursive_var = T String
+                                          deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''T]
+  )
+
+data T2 composable_types_recursive_var = T2 composable_types_recursive_var
+                                            String composable_types_recursive_var
+                                           deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''T2]
+  )
+
+data T3 composable_types_recursive_var = T3 composable_types_recursive_var
+                                           deriving Functor
+
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''T3]
+  )
+
+class () => Transform f a where
+        transform' ::
+                     (Transform g a) => f (Data.Comp.Term g) -> Data.Comp.Term a
+
+transform ::
+            (Transform g a) => Data.Comp.Term g -> Data.Comp.Term a
+transform = transform' . Data.Comp.unTerm
+
+{-# NOINLINE transform #-}
+
+$( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''Transform]
+  )
+
+instance T Data.Comp.:<: a => Transform Value a where
+        transform' (Const c) = iT $ show c
+
+instance T2 Data.Comp.:<: a => Transform Op a where
+        transform' (Add e1 e2) = iT2 (transform e1) "+" (transform e2)
+        transform' (Mult e1 e2) = iT2 (transform e1) "*" (transform e2)
+
+instance (T3 Data.Comp.:<: a, T2 Data.Comp.:<: a) =>
+         Transform PairOp a
+         where
+        transform' (Fst e1 e2) = iT3 (transform e1)
+        transform' (Snd e1 e2) = iT3 (transform e2)
+        transform' (Double e) = iT2 (transform e) "+" (transform e)

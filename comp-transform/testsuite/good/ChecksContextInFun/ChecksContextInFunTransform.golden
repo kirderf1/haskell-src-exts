@@ -18,10 +18,11 @@ $(
   )
 
 class C f where
-        c' :: (C g) => f (Data.Comp.Term g) -> ()
+        composable_types_class_function_c ::
+                                            (C g) => f (Data.Comp.Term g) -> ()
 
 c :: (C g) => Data.Comp.Term g -> ()
-c = c' . Data.Comp.unTerm
+c = composable_types_class_function_c . Data.Comp.unTerm
 
 {-# NOINLINE c #-}
 

@@ -20,14 +20,15 @@ $(
   )
 
 class D f where
-        d' :: (D g) => f (Data.Comp.Term g) -> ()
+        composable_types_class_function_d ::
+                                            (D g) => f (Data.Comp.Term g) -> ()
 
 d :: (D g) => Data.Comp.Term g -> ()
-d = d' . Data.Comp.unTerm
+d = composable_types_class_function_d . Data.Comp.unTerm
 
 {-# NOINLINE d #-}
 
 $( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''D] )
 
 instance forall e . D B where
-        d' (C a) = d a
+        composable_types_class_function_d (C a) = d a

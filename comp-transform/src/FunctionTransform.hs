@@ -43,8 +43,7 @@ transformFunDecl d = return [d]
 
 -- | Transform function to function name with prime
 toFuncName :: Name () -> Transform (Name ())
-toFuncName nam = (\n -> name (n ++ "'")) <$> nameStr ("CompFuncDecl with " ++ show nam) nam  
-
+toFuncName nam = (\n -> name ("composable_types_class_function_" ++ n)) <$> nameStr ("CompFuncDecl with " ++ show nam) nam  
 
 -- | Build a declaration of a class corresponding to a function
 functionClass :: Maybe (Context ()) -> Name () -> Name () -> Type () -> Transform (Decl ())

@@ -67,12 +67,14 @@ $(
   )
 
 class () => Transform f a where
-        transform' ::
-                     (Transform g a) => f (Data.Comp.Term g) -> Data.Comp.Term a
+        composable_types_class_function_transform ::
+                                                    (Transform g a) =>
+                                                    f (Data.Comp.Term g) -> Data.Comp.Term a
 
 transform ::
             (Transform g a) => Data.Comp.Term g -> Data.Comp.Term a
-transform = transform' . Data.Comp.unTerm
+transform
+  = composable_types_class_function_transform . Data.Comp.unTerm
 
 {-# NOINLINE transform #-}
 
@@ -80,15 +82,20 @@ $( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''Transform]
   )
 
 instance T Data.Comp.:<: a => Transform Value a where
-        transform' (Const c) = iT $ show c
+        composable_types_class_function_transform (Const c) = iT $ show c
 
 instance T2 Data.Comp.:<: a => Transform Op a where
-        transform' (Add e1 e2) = iT2 (transform e1) "+" (transform e2)
-        transform' (Mult e1 e2) = iT2 (transform e1) "*" (transform e2)
+        composable_types_class_function_transform (Add e1 e2)
+          = iT2 (transform e1) "+" (transform e2)
+        composable_types_class_function_transform (Mult e1 e2)
+          = iT2 (transform e1) "*" (transform e2)
 
 instance (T3 Data.Comp.:<: a, T2 Data.Comp.:<: a) =>
          Transform PairOp a
          where
-        transform' (Fst e1 e2) = iT3 (transform e1)
-        transform' (Snd e1 e2) = iT3 (transform e2)
-        transform' (Double e) = iT2 (transform e) "+" (transform e)
+        composable_types_class_function_transform (Fst e1 e2)
+          = iT3 (transform e1)
+        composable_types_class_function_transform (Snd e1 e2)
+          = iT3 (transform e2)
+        composable_types_class_function_transform (Double e)
+          = iT2 (transform e) "+" (transform e)

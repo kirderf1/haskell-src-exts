@@ -12,10 +12,11 @@ import qualified Data.Comp.Show ()
 import qualified Data.Comp.Equality ()
 
 class Eval f where
-        eval' :: (Eval g) => f (Data.Comp.Term g) -> Bool -> String
+        composable_types_class_function_eval ::
+                                               (Eval g) => f (Data.Comp.Term g) -> Bool -> String
 
 eval :: (Eval g) => Data.Comp.Term g -> Bool -> String
-eval = eval' . Data.Comp.unTerm
+eval = composable_types_class_function_eval . Data.Comp.unTerm
 
 {-# NOINLINE eval #-}
 

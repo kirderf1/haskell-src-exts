@@ -17,13 +17,17 @@ $(
   Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''B]
   )
 
-class D f e where
+class Composable_types_class_d f e where
         composable_types_class_function_d ::
-                                            (D g e) => f (Data.Comp.Term g) -> e
+                                            (Composable_types_class_d g e) =>
+                                            f (Data.Comp.Term g) -> e
 
-d :: (D g e) => Data.Comp.Term g -> e
+d :: (Composable_types_class_d g e) => Data.Comp.Term g -> e
 d = composable_types_class_function_d . Data.Comp.unTerm
 
 {-# NOINLINE d #-}
 
-$( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''D] )
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.liftSum]
+    [''Composable_types_class_d]
+  )

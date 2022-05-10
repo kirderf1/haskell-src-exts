@@ -6,7 +6,6 @@ import Language.Haskell.Exts
 
 import           Data.Map   (Map)
 import           Data.Set   (Set)
-import           Data.Char (toUpper)
 import           Data.Maybe (catMaybes)
 
 import Control.Monad.Reader
@@ -36,8 +35,7 @@ qNameStr err _ = throwError $ "Unexpected special QName in " ++ err
 toClassName :: Name () -> Transform (Name ())
 toClassName nam = do
     str <- nameStr ("CompFunDecl with " ++ show nam) nam
-    let (s:ss) = str
-    return $ name (toUpper s : ss)
+    return $ name ("Composable_types_class_" ++ str)
   
 -- | Transform a qualified function name to a qualified class name
 toClassQName :: QName () -> Transform (QName ())

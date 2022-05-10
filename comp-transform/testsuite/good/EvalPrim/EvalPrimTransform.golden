@@ -11,16 +11,23 @@ import qualified Data.Comp.Derive
 import qualified Data.Comp.Show ()
 import qualified Data.Comp.Equality ()
 
-class Eval f where
+class Composable_types_class_eval f where
         composable_types_class_function_eval ::
-                                               (Eval g) => f (Data.Comp.Term g) -> Bool -> String
+                                               (Composable_types_class_eval g) =>
+                                               f (Data.Comp.Term g) -> Bool -> String
 
-eval :: (Eval g) => Data.Comp.Term g -> Bool -> String
+eval ::
+       (Composable_types_class_eval g) =>
+       Data.Comp.Term g -> Bool -> String
 eval = composable_types_class_function_eval . Data.Comp.unTerm
 
 {-# NOINLINE eval #-}
 
-$( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''Eval] )
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.liftSum]
+    [''Composable_types_class_eval]
+  )
 
-eval2 :: Eval a => Data.Comp.Term a -> String
+eval2 ::
+        Composable_types_class_eval a => Data.Comp.Term a -> String
 eval2 a = eval a False

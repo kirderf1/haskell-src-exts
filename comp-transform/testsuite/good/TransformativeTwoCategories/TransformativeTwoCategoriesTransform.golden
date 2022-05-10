@@ -46,25 +46,32 @@ $(
   Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''T2]
   )
 
-class () => Transform f a where
+class () => Composable_types_class_transform f a where
         composable_types_class_function_transform ::
-                                                    (Transform g a) =>
+                                                    (Composable_types_class_transform g a) =>
                                                     f (Data.Comp.Term g) -> Data.Comp.Term a
 
 transform ::
-            (Transform g a) => Data.Comp.Term g -> Data.Comp.Term a
+            (Composable_types_class_transform g a) =>
+            Data.Comp.Term g -> Data.Comp.Term a
 transform
   = composable_types_class_function_transform . Data.Comp.unTerm
 
 {-# NOINLINE transform #-}
 
-$( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''Transform]
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.liftSum]
+    [''Composable_types_class_transform]
   )
 
-instance T Data.Comp.:<: a => Transform Value a where
+instance T Data.Comp.:<: a =>
+         Composable_types_class_transform Value a
+         where
         composable_types_class_function_transform (Const c) = iT $ show c
 
-instance T2 Data.Comp.:<: a => Transform Op a where
+instance T2 Data.Comp.:<: a =>
+         Composable_types_class_transform Op a
+         where
         composable_types_class_function_transform (Add e1 e2)
           = iT2 (transform e1) "+" (transform e2)
         composable_types_class_function_transform (Mult e1 e2)

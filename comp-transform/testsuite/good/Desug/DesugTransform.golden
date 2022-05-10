@@ -42,29 +42,37 @@ type Sig = Data.Comp.Term (Value Data.Comp.:+: Op)
 type Sig2 =
      Data.Comp.Term (Value Data.Comp.:+: Op Data.Comp.:+: Sugar)
 
-class () => Desug f a where
+class () => Composable_types_class_desug f a where
         composable_types_class_function_desug ::
-                                                (Desug g a) =>
+                                                (Composable_types_class_desug g a) =>
                                                 f (Data.Comp.Term g) -> Data.Comp.Term a
 
-desug :: (Desug g a) => Data.Comp.Term g -> Data.Comp.Term a
+desug ::
+        (Composable_types_class_desug g a) =>
+        Data.Comp.Term g -> Data.Comp.Term a
 desug = composable_types_class_function_desug . Data.Comp.unTerm
 
 {-# NOINLINE desug #-}
 
-$( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''Desug] )
+$(
+  Data.Comp.Derive.derive [Data.Comp.Derive.liftSum]
+    [''Composable_types_class_desug]
+  )
 
-instance Value Data.Comp.:<: a => Desug Value a where
+instance Value Data.Comp.:<: a =>
+         Composable_types_class_desug Value a
+         where
         composable_types_class_function_desug (Const c) = iConst c
 
-instance Op Data.Comp.:<: a => Desug Op a where
+instance Op Data.Comp.:<: a => Composable_types_class_desug Op a
+         where
         composable_types_class_function_desug (Add e1 e2)
           = iAdd (desug e1) (desug e2)
         composable_types_class_function_desug (Mult e1 e2)
           = iMult (desug e1) (desug e2)
 
 instance (Value Data.Comp.:<: a, Op Data.Comp.:<: a) =>
-         Desug Sugar a
+         Composable_types_class_desug Sugar a
          where
         composable_types_class_function_desug (Neg e)
           = iConst (-1) `iMult` (desug e)

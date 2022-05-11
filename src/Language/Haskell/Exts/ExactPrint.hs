@@ -191,13 +191,14 @@ pList' [p] (_,c) = [(p,c)]
 pList' (p:ps) (b,c) = (p, b) : pList' ps (b,c)
 
 parenList, squareList, squareColonList, curlyList, parenHashList,
-  unboxedSumTypeList :: (ExactP ast) => [SrcSpan] -> [ast SrcSpanInfo] -> EP ()
+  unboxedSumTypeList, tyCompList :: (ExactP ast) => [SrcSpan] -> [ast SrcSpanInfo] -> EP ()
 parenList = bracketList ("(",",",")")
 squareList = bracketList ("[",",","]")
 squareColonList = bracketList ("[:",",",":]")
 curlyList = bracketList ("{",",","}")
 parenHashList = bracketList ("(#",",","#)")
 unboxedSumTypeList = bracketList ("(#", "|", "#)")
+tyCompList = bracketList ("(","|",")")
 
 layoutList :: (ExactP ast) => [SrcSpan] -> [ast SrcSpanInfo] -> EP ()
 layoutList poss asts = printStreams
@@ -1183,7 +1184,7 @@ instance ExactP Type where
     TyComp l cat pieces -> do
         exactP cat
         printString "==>"
-        parenList (srcInfoPoints l) pieces
+        tyCompList (srcInfoPoints l) pieces
         
 instance ExactP CompContext where
     exactP _ = errorEP "ExactP: Instance not written for CompContext"

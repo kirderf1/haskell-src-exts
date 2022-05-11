@@ -8,7 +8,7 @@ data piece Expr ==> Value = Const Int
 data piece Expr ==> Op = Add Expr Expr | Mult Expr Expr 
 data piece Expr ==> PairOp = Fst Expr Expr | Snd Expr Expr | Double Expr
 
-type Sig = Expr ==> (Value, Op, PairOp)
+type Sig = Expr ==> (Value | Op | PairOp)
 
 piececategory Text
 

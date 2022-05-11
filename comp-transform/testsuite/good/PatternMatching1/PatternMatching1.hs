@@ -10,6 +10,6 @@ data piece A ==> C = C
 d :: A ==> B -> Int
 d (B i) = i
 
-e :: A ==> (B, C) -> Int
+e :: A ==> (B | C) -> Int
 e (B i) = i
 e C     = 0

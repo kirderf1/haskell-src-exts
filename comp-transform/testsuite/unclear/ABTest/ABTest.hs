@@ -11,5 +11,5 @@ data piece A ==> Ab = Ab Bool B
 
 data piece B ==> B = B Bool | Bi Int
 
-type CombinedA = A ==> (A, Ab)
+type CombinedA = A ==> (A | Ab)
 

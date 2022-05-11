@@ -7,7 +7,7 @@ piececategory Expr
 data piece Expr ==> Value = Const Int 
 data piece Expr ==> Op = Add Expr Expr | Mult Expr Expr 
 
-type Sig = Expr ==> (Value, Op)
+type Sig = Expr ==> (Value | Op)
 
 piececategory Text
 

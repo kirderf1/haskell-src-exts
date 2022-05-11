@@ -8,8 +8,8 @@ data piece Expr ==> Value = Const Int
 data piece Expr ==> Op = Add Expr Expr | Mult Expr Expr 
 data piece Expr ==> Sugar = Neg Expr
 
-type Sig = Expr ==> (Value, Op)
-type Sig2 = Expr ==> (Value, Op, Sugar)
+type Sig = Expr ==> (Value | Op)
+type Sig2 = Expr ==> (Value | Op | Sugar)
 
 desug -: for (Expr ==> a) . Expr -> a
 

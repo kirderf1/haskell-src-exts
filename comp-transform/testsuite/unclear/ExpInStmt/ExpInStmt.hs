@@ -10,8 +10,8 @@ data piece Stmt Expr ==> If = If Expr Stmt
 data piece Expr ==> Literal = BoolLit Bool | StringLit String
 data piece Expr ==> BoolOp = And Expr Expr | Or Expr Expr
 
-type AExp = Expr ==> (Literal, BoolOp)
-type AStmt = Stmt AExp ==> (Assign, If)
+type AExp = Expr ==> (Literal | BoolOp)
+type AStmt = Stmt AExp ==> (Assign | If)
 
 stringifyS -: Stmt e -> String
 stringifyE -: Expr -> String

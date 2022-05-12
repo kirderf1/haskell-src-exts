@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -13,7 +12,6 @@ import qualified Data.Comp.Equality ()
 
 data B composable_types_recursive_var = C Int
                                       | D composable_types_recursive_var
-                                          deriving Functor
 
 composable_types_constructor_C ::
                                  B Data.Comp.:<: g => Int -> Data.Comp.Term g

@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -15,7 +14,6 @@ data Op composable_types_recursive_var = Add composable_types_recursive_var
                                              composable_types_recursive_var
                                        | Mult composable_types_recursive_var
                                               composable_types_recursive_var
-                                           deriving Functor
 
 composable_types_constructor_Add ::
                                    Op Data.Comp.:<: g =>

@@ -25,7 +25,7 @@ transformPieceDecl (PieceDecl _ category pieceName cons derives) =
         Nothing 
         (DHApp () (DHead () pieceName) (UnkindedVar () parname))
         cspar
-        (deriveFunctor : derives)
+        derives
         : smartCons)
 transformPieceDecl (PieceCatDecl _ _) = return []
 transformPieceDecl d = return [d]
@@ -66,20 +66,6 @@ checkInCategory category pieces (p:ps) = if Set.member p pieces
     else do
         pName <- qNameStr ("TyComp with " ++ show p) p
         throwError $ "Piece: " ++ pName ++ " not found in category: " ++ category
-
--- TODO: Add deriving functor in tuple of one derive, not in list. 
--- (If we want user to be able to add deriving clauses)
--- Gives this error message for multiple deriving clauses:
--- Illegal use of multiple, consecutive deriving clauses
--- Use DerivingStrategies to allow this
-
--- | Create a Deriving functor for a given data type
-deriveFunctor :: Deriving ()
-deriveFunctor =
-  Deriving () Nothing
-    [IRule () Nothing 
-      Nothing Nothing 
-      (IHCon () (UnQual () (name "Functor")))]
 
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 
     parameter instead of the name of the category it belongs to.

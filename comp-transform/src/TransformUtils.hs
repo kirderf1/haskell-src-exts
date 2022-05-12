@@ -59,10 +59,6 @@ subName = (Qual () compdata (Symbol () ":<:"))
 injectExp :: Exp ()
 injectExp = qvar compdata (name "inject")
 
--- | Template Haskell derive for a piece
-deriveTHPiece :: Name () -> Decl () 
-deriveTHPiece pieceName = deriveTH pieceName ["smartConstructors"]
-
 -- | Template Haskell derive for a certain data type from a list of things to derive
 deriveTH :: Name () -> [String] -> Decl () 
 deriveTH targetName list = SpliceDecl () 

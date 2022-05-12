@@ -87,7 +87,7 @@ transformExp e = return e
 -- | Modify a list of pragmas to remove ComposableTypes and add the ones needed for compdata
 modifyPragmas :: [ModulePragma ()] -> [ModulePragma ()]
 modifyPragmas ps =  foldr addPragma (removeCompTypes ps)
-                                ["DeriveFunctor","TemplateHaskell","TypeOperators"
+                                ["TemplateHaskell","TypeOperators"
                                 ,"FlexibleContexts","FlexibleInstances","MultiParamTypeClasses"
                                 ,"UndecidableInstances"] 
     where  

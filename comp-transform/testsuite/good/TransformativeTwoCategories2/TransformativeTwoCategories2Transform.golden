@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -12,7 +11,6 @@ import qualified Data.Comp.Show ()
 import qualified Data.Comp.Equality ()
 
 data Value composable_types_recursive_var = Const Int
-                                              deriving Functor
 
 composable_types_constructor_Const ::
                                      Value Data.Comp.:<: g => Int -> Data.Comp.Term g
@@ -23,7 +21,6 @@ data Op composable_types_recursive_var = Add composable_types_recursive_var
                                              composable_types_recursive_var
                                        | Mult composable_types_recursive_var
                                               composable_types_recursive_var
-                                           deriving Functor
 
 composable_types_constructor_Add ::
                                    Op Data.Comp.:<: g =>
@@ -42,7 +39,6 @@ data PairOp composable_types_recursive_var = Fst composable_types_recursive_var
                                            | Snd composable_types_recursive_var
                                                  composable_types_recursive_var
                                            | Double composable_types_recursive_var
-                                               deriving Functor
 
 composable_types_constructor_Fst ::
                                    PairOp Data.Comp.:<: g =>
@@ -65,7 +61,6 @@ type Sig =
      Data.Comp.Term (Value Data.Comp.:+: Op Data.Comp.:+: PairOp)
 
 data T composable_types_recursive_var = T String
-                                          deriving Functor
 
 composable_types_constructor_T ::
                                  T Data.Comp.:<: g => String -> Data.Comp.Term g
@@ -73,7 +68,6 @@ composable_types_constructor_T arg_1 = Data.Comp.inject (T arg_1)
 
 data T2 composable_types_recursive_var = T2 composable_types_recursive_var
                                             String composable_types_recursive_var
-                                           deriving Functor
 
 composable_types_constructor_T2 ::
                                   T2 Data.Comp.:<: g =>
@@ -82,7 +76,6 @@ composable_types_constructor_T2 arg_1 arg_2 arg_3
   = Data.Comp.inject (T2 arg_1 arg_2 arg_3)
 
 data T3 composable_types_recursive_var = T3 composable_types_recursive_var
-                                           deriving Functor
 
 composable_types_constructor_T3 ::
                                   T3 Data.Comp.:<: g => Data.Comp.Term g -> Data.Comp.Term g

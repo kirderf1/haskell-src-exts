@@ -14,10 +14,10 @@ import qualified Data.Comp.Equality ()
 data Value composable_types_recursive_var = Const Int
                                               deriving Functor
 
-$(
-  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors]
-    [''Value]
-  )
+composable_types_constructor_Const ::
+                                     Value Data.Comp.:<: g => Int -> Data.Comp.Term g
+composable_types_constructor_Const arg_1
+  = Data.Comp.inject (Const arg_1)
 
 data Op composable_types_recursive_var = Add composable_types_recursive_var
                                              composable_types_recursive_var
@@ -25,26 +25,36 @@ data Op composable_types_recursive_var = Add composable_types_recursive_var
                                               composable_types_recursive_var
                                            deriving Functor
 
-$(
-  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''Op]
-  )
+composable_types_constructor_Add ::
+                                   Op Data.Comp.:<: g =>
+                                   Data.Comp.Term g -> Data.Comp.Term g -> Data.Comp.Term g
+composable_types_constructor_Add arg_1 arg_2
+  = Data.Comp.inject (Add arg_1 arg_2)
+
+composable_types_constructor_Mult ::
+                                    Op Data.Comp.:<: g =>
+                                    Data.Comp.Term g -> Data.Comp.Term g -> Data.Comp.Term g
+composable_types_constructor_Mult arg_1 arg_2
+  = Data.Comp.inject (Mult arg_1 arg_2)
 
 type Sig = Data.Comp.Term (Value Data.Comp.:+: Op)
 
 data T composable_types_recursive_var = T String
                                           deriving Functor
 
-$(
-  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''T]
-  )
+composable_types_constructor_T ::
+                                 T Data.Comp.:<: g => String -> Data.Comp.Term g
+composable_types_constructor_T arg_1 = Data.Comp.inject (T arg_1)
 
 data T2 composable_types_recursive_var = T2 composable_types_recursive_var
                                             String composable_types_recursive_var
                                            deriving Functor
 
-$(
-  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''T2]
-  )
+composable_types_constructor_T2 ::
+                                  T2 Data.Comp.:<: g =>
+                                  Data.Comp.Term g -> String -> Data.Comp.Term g -> Data.Comp.Term g
+composable_types_constructor_T2 arg_1 arg_2 arg_3
+  = Data.Comp.inject (T2 arg_1 arg_2 arg_3)
 
 class () => Composable_types_class_transform f a where
         composable_types_class_function_transform ::
@@ -67,12 +77,13 @@ $(
 instance T Data.Comp.:<: a =>
          Composable_types_class_transform Value a
          where
-        composable_types_class_function_transform (Const c) = iT $ show c
+        composable_types_class_function_transform (Const c)
+          = composable_types_constructor_T $ show c
 
 instance T2 Data.Comp.:<: a =>
          Composable_types_class_transform Op a
          where
         composable_types_class_function_transform (Add e1 e2)
-          = iT2 (transform e1) "+" (transform e2)
+          = composable_types_constructor_T2 (transform e1) "+" (transform e2)
         composable_types_class_function_transform (Mult e1 e2)
-          = iT2 (transform e1) "*" (transform e2)
+          = composable_types_constructor_T2 (transform e1) "*" (transform e2)

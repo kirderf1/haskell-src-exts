@@ -43,12 +43,12 @@ transformFunDecl d = return [d]
 
 -- | Transform function to function name with prime
 toFuncName :: Name () -> Transform (Name ())
-toFuncName nam = (\n -> name ("composable_types_class_function_" ++ n)) <$> nameStr ("CompFuncDecl with " ++ show nam) nam  
+toFuncName nam = (\n -> name ("composable_types_class_function_" ++ n)) <$> nameStr ("CompFuncDecl with " ++ show nam) nam
 
 -- | Build a declaration of a class corresponding to a function
 functionClass :: Maybe (Context ()) -> Name () -> Name () -> Type () -> Transform (Decl ())
 functionClass mcx className functionName t = do
-    funType <- transformFunType className (TyApp () (TyVar () (name "f")) (TyParen () termType)) t
+    funType <- transformFunType className (TyApp () (TyVar () (name "f")) (TyParen () term)) t
     return $ ClassDecl () mcx
         (buildType $ collectUniqueVars t) []
         (Just [classFunctionDecl functionName funType])
@@ -70,18 +70,18 @@ transformFunType cname replType ty = do
     buildType (v:vars) = TyApp () (buildType vars) (TyVar () v)
 
 -- | Build type for term with parametric part "g"
-termType :: Type ()
-termType = TyApp () termName (TyVar () (name "g"))
+term :: Type ()
+term = termApp (TyVar () (name "g"))
 
 -- | Build function signature
 functionsig :: Name () -> Name () -> Type () -> Transform (Decl ())
 functionsig nam className t = do
-    funType <- transformFunType className termType t
+    funType <- transformFunType className term t
     return $ TypeSig () [nam] funType
 
 -- | Build declaration of final function that combines the class function with unTerm
 functionBind :: Name () -> Name () -> Decl ()
-functionBind nam funcName = patBind (pvar nam) (infixApp (var funcName) (op (sym ".")) (qvar (ModuleName () "Data.Comp") (name "unTerm")))
+functionBind nam funcName = nameBind nam (infixApp (var funcName) (op (sym ".")) (qvar (ModuleName () "Data.Comp") (name "unTerm")))
 
 noinline :: Name () -> Decl ()
 noinline nam = InlineSig () False Nothing (UnQual () nam)

@@ -1,5 +1,5 @@
 
-module PieceTransform (transformPieceDecl, transformCompType) where
+module PieceTransform (transformPieceDecl, transformCompType, toSmartCon) where
 
 import Language.Haskell.Exts
 
@@ -14,18 +14,19 @@ import Control.Monad.Except
 
 -- | Transform a top level declaration to one or more new declarations
 transformPieceDecl :: Decl () -> Transform [Decl ()]
-transformPieceDecl (PieceDecl _ category headName cons derives) = 
+transformPieceDecl (PieceDecl _ category pieceName cons derives) = 
     let parname = getParName
         cspar = map (parametConstructor parname category) cons
-        in
+        in do
+    smartCons <- concat <$> mapM (smartCon category pieceName) cons
     return (DataDecl 
         ()
         (DataType ())
         Nothing 
-        (DHApp () (DHead () headName) (UnkindedVar () parname))
+        (DHApp () (DHead () pieceName) (UnkindedVar () parname))
         cspar
         (deriveFunctor : derives)
-        : [deriveTHPiece headName])
+        : smartCons)
 transformPieceDecl (PieceCatDecl _ _) = return []
 transformPieceDecl d = return [d]
 
@@ -39,7 +40,7 @@ transformCompType (TyComp _ category types) = do
         Just pieces -> do 
             lift $ checkInCategory catStr pieces types
             coprodtype <- coprod types
-            return $ TyApp () termName (TyParen () coprodtype)
+            return $ termApp (TyParen () coprodtype)
 transformCompType t = return t
 
 -- | Get a name for the parametrized variable.
@@ -96,3 +97,40 @@ parametConstructor parname category (QualConDecl _ v c conDecl) =
         parametType (TyCon _ recu) | recu == category = TyVar () parname
         parametType t = t
 
+collectTypes :: QualConDecl () -> (Name (), [Type ()])
+collectTypes (QualConDecl _ _ _ conDecl) = conDeclArgs conDecl
+  where
+    conDeclArgs :: ConDecl () -> (Name (), [Type ()])
+    conDeclArgs (ConDecl _ nam types) = (nam, types)
+    conDeclArgs (InfixConDecl _ t1 nam t2) = (nam, [t1, t2])
+    conDeclArgs (RecDecl _ nam fields) = (nam, concat $ map fieldTypes fields)
+      where fieldTypes (FieldDecl _ names ty) = replicate (length names) ty
+
+smartCon :: QName () -> Name () -> QualConDecl () -> Transform [Decl ()]
+smartCon cat piece con = do
+    funName <- toSmartName conName
+    let pattern = pApp funName (pvar <$> argNames)
+    return $ [typeBinding funName, patBind pattern expr]
+  where
+    (conName, argTypes) = collectTypes con
+    args = length argTypes
+    argNames = (\arg -> name $ "arg_" ++ show (arg)) <$> [1..args]
+    internalType = TyVar () (name "g")
+    term = termApp internalType
+    
+    replaceCat (TyCon () tycon) | tycon == cat = term
+    replaceCat t                               = t
+    funType = foldr (TyFun ()) term (replaceCat <$> argTypes)
+    subAssertion = TypeA () (TyInfix () (TyCon () (UnQual () piece)) (UnpromotedName () subName) internalType)
+    typeBinding funName = TypeSig () [funName] (TyForall () Nothing Nothing (Just (CxSingle () subAssertion)) funType)
+    
+    expr = app injectExp (foldl app (Con () $ UnQual () conName) (var <$> argNames))
+
+toSmartCon :: QName () -> Transform (QName ())
+toSmartCon (UnQual ()            nam) = UnQual ()            <$> toSmartName nam
+toSmartCon (Qual   () moduleName nam) = Qual   () moduleName <$> toSmartName nam
+toSmartCon qname                                 = throwError $ "Tried to transform unexpected constructor name \"" ++ prettyPrint qname ++ "\"." 
+
+toSmartName :: Name () -> Transform (Name ())
+toSmartName (Ident () str) = return $ name ("composable_types_constructor_" ++ str)
+toSmartName nam           = throwError $ "Tried to transform unexpected constructor name \"" ++ prettyPrint nam ++ "\"."

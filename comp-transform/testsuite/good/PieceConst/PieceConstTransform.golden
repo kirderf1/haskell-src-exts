@@ -14,7 +14,7 @@ import qualified Data.Comp.Equality ()
 data Value composable_types_recursive_var = Const Int
                                               deriving Functor
 
-$(
-  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors]
-    [''Value]
-  )
+composable_types_constructor_Const ::
+                                     Value Data.Comp.:<: g => Int -> Data.Comp.Term g
+composable_types_constructor_Const arg_1
+  = Data.Comp.inject (Const arg_1)

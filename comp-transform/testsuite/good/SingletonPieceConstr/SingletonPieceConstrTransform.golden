@@ -13,9 +13,9 @@ import qualified Data.Comp.Equality ()
 
 data B composable_types_recursive_var = B deriving Functor
 
-$(
-  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''B]
-  )
+composable_types_constructor_B ::
+                                 B Data.Comp.:<: g => Data.Comp.Term g
+composable_types_constructor_B = Data.Comp.inject B
 
 c :: Data.Comp.Term (B)
-c = iB
+c = composable_types_constructor_B

@@ -84,11 +84,6 @@ transformExp a@(RightSection _ (QConOp _ qcon) expr) = do
         else return a
 transformExp e = return e
 
-toSmartCon :: QName () -> Transform (QName ())
-toSmartCon (UnQual ()            (Ident () str)) = return $ UnQual ()            (Ident () ('i' : str))
-toSmartCon (Qual   () moduleName (Ident () str)) = return $ Qual   () moduleName (Ident () ('i' : str))
-toSmartCon qname                                 = throwError $ "Tried to transform unexpected expression \"" ++ prettyPrint qname ++ "\"." 
-
 -- | Modify a list of pragmas to remove ComposableTypes and add the ones needed for compdata
 modifyPragmas :: [ModulePragma ()] -> [ModulePragma ()]
 modifyPragmas ps =  foldr addPragma (removeCompTypes ps)

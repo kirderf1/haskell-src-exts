@@ -54,34 +54,39 @@ transformType t = return t
 
 -- | Transform an expression
 transformExp :: Exp () -> Transform (Exp ())
-transformExp a@(Con _ qcon) = do
+transformExp e@(Con _ qcon) = do
     (_, constrs) <- ask
     if Set.member qcon constrs
         then do
              smartCon <- toSmartCon qcon
              return $ Var () smartCon
-        else return a
-transformExp a@(InfixApp _ expr1 (QConOp _ qcon) expr2) = do
+        else return e
+transformExp e@(InfixApp _ expr1 (QConOp _ qcon) expr2) = do
     (_, constrs) <- ask
     if Set.member qcon constrs
         then do
              smartCon <- toSmartCon qcon
              return $ InfixApp () expr1 (QVarOp () smartCon) expr2
-        else return a
-transformExp a@(LeftSection _ expr (QConOp _ qcon)) = do
+        else return e
+transformExp e@(LeftSection _ expr (QConOp _ qcon)) = do
     (_, constrs) <- ask
     if Set.member qcon constrs
         then do
              smartCon <- toSmartCon qcon
              return $ LeftSection () expr (QVarOp () smartCon)
-        else return a
-transformExp a@(RightSection _ (QConOp _ qcon) expr) = do
+        else return e
+transformExp e@(RightSection _ (QConOp _ qcon) expr) = do
     (_, constrs) <- ask
     if Set.member qcon constrs
         then do
              smartCon <- toSmartCon qcon
              return $ RightSection () (QVarOp () smartCon) expr
-        else return a
+        else return e
+transformExp e@(RecConstr _ qcon _) = do
+    (_, constrs) <- ask
+    return $ if Set.member qcon constrs
+        then app injectExp e
+        else e
 transformExp e = return e
 
 -- | Modify a list of pragmas to remove ComposableTypes and add the ones needed for compdata

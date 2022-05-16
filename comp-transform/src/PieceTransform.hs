@@ -101,13 +101,11 @@ smartCon cat piece con = do
     (conName, argTypes) = collectTypes con
     args = length argTypes
     argNames = (\arg -> name $ "arg_" ++ show (arg)) <$> [1..args]
-    internalType = TyVar () (name "g")
-    term = termApp internalType
-    
-    replaceCat (TyCon () tycon) | tycon == cat = term
+    internalType = TyVar () (name "g")    
+    replaceCat (TyCon () tycon) | tycon == cat = internalType
     replaceCat t                               = t
-    funType = foldr (TyFun ()) term (replaceCat <$> argTypes)
-    subAssertion = TypeA () (TyInfix () (TyCon () (UnQual () piece)) (UnpromotedName () subName) internalType)
+    funType = foldr (TyFun ()) internalType (replaceCat <$> argTypes)
+    subAssertion = TypeA () (TyApp () (TyApp () (TyCon () partOfName) (TyCon () (UnQual () piece))) internalType)
     typeBinding funName = TypeSig () [funName] (TyForall () Nothing Nothing (Just (CxSingle () subAssertion)) funType)
     
     expr = app injectExp (foldl app (Con () $ UnQual () conName) (var <$> argNames))

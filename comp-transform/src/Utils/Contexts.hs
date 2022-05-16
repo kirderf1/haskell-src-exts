@@ -1,9 +1,8 @@
 module Utils.Contexts(mapContext) where
 
 import Language.Haskell.Exts.Syntax
-import Utils.Types 
 
-type ContextTransform l m = Context l -> m (Context l, ContextMap m)
+type ContextTransform l m = Context l -> m (Context l)
 
 class ContextMap a where
     mapContext :: (Monad m) => ContextTransform l m -> a l -> m (a l)
@@ -21,9 +20,8 @@ instance ContextMap Decl where
             TypeDecl     l dh t      -> TypeDecl    l <$> mapContext f dh <*> mapContext f t
             TypeFamDecl  l dh mk mi  -> TypeFamDecl l <$> mapContext f dh <*> (mapContext f `mapM` mk) <*> return mi
             ClosedTypeFamDecl  l dh mk mi eqns  -> ClosedTypeFamDecl l <$> mapContext f dh <*> (mapContext f `mapM` mk) <*> return mi <*> (mapContext f `mapM` eqns)
-            DataDecl     l dn mcx dh cds ders -> do
-                (mcx', tfmap) <- helper mcx f
-                return $ DataDecl l dn <$> (mapContext f `mapM` mcx) <*> mapContext f dh <*> (tfmap `mapM` mapContext f `mapM` cds) <*> (mapContext f `mapM` ders)
+            DataDecl     l dn mcx dh cds ders ->
+                DataDecl l dn <$> (mapContext f `mapM` mcx) <*> mapContext f dh <*> (mapContext f `mapM` cds) <*> (mapContext f `mapM` ders)
             GDataDecl    l dn mcx dh mk gds ders ->
                 GDataDecl l dn <$> (mapContext f `mapM` mcx) <*> mapContext f dh <*> (mapContext f `mapM` mk) <*> (mapContext f `mapM` gds) <*> (mapContext f `mapM` ders)
             DataFamDecl  l mcx dh mk         -> DataFamDecl l <$> (mapContext f `mapM` mcx) <*> mapContext f dh <*> (mapContext f `mapM` mk)
@@ -356,10 +354,3 @@ instance ContextMap FieldUpdate where
 
 instance ContextMap Alt where
     mapContext f (Alt l p gs bs) = Alt l <$> mapContext f p <*> mapContext f gs <*> (mapContext f `mapM` bs)
-    
-
-helper :: (ContextMap a, TypeMap a, Monad m) => Maybe (Context ()) -> ContextTransform m -> m (Maybe (Context ()), a -> m a)
-helper Nothing    _ = return (Nothing, return)
-helper (Just ctx) f = do
-    (ctx', tf) <- f ctx
-    return (ctx', mapType tf)

@@ -52,17 +52,34 @@ toOuterClassName nam = do
     str <- nameStr ("CompFunDecl with " ++ show nam) nam
     return $ name ("Composable_types_outer_class_" ++ str)
 
+-- | Transform a qualified function name to a qualified class name
+toOuterClassQName :: QName () -> Transform (QName ())
+toOuterClassQName (Qual _ moduleName fname) = do
+                cname <- toOuterClassName fname
+                return $ Qual () moduleName cname
+toOuterClassQName (UnQual _ fname) = do 
+                cname <- toOuterClassName fname
+                return $ UnQual () cname
+toOuterClassQName _ = throwError "Unexpected special qname of function name"
+    
+    
 compdata :: ModuleName ()
 compdata = ModuleName () "Data.Comp"
 
 termApp :: Type () -> Type ()
 termApp = TyApp () (TyCon () (Qual () compdata (name "Term")))
 
-subName :: QName ()
-subName = (Qual () compdata (Symbol () ":<:"))
+-- subName :: QName ()
+-- subName = Qual () compdata (Symbol () ":<:")
+
+lib :: ModuleName ()
+lib = ModuleName () "ComposableTypes"
+
+partOfName :: QName ()
+partOfName = Qual () lib (Ident () "PartOf")
 
 injectExp :: Exp ()
-injectExp = qvar compdata (name "inject")
+injectExp = qvar lib (name "inject'")
 
 -- | Template Haskell derive for a certain data type from a list of things to derive
 deriveTH :: Name () -> [String] -> Decl () 
@@ -84,9 +101,9 @@ deriveTHListElem :: String -> Exp ()
 deriveTHListElem nam = qvar (ModuleName () "Data.Comp.Derive") (name nam)
 
 -- | Change a type variable to be a term
-exchangeToTerm :: [Name ()] -> Type () -> Transform (Type ())
-exchangeToTerm vars v@(TyVar _ vname) | vname `elem` vars = return $ termApp v
-exchangeToTerm _ t = return t
+-- exchangeToTerm :: [Name ()] -> Type () -> Transform (Type ())
+-- exchangeToTerm vars v@(TyVar _ vname) | vname `elem` vars = return $ termApp v
+-- exchangeToTerm _ t = return t
 
 
 -- | Transform compcontext into regular context
@@ -124,27 +141,27 @@ addToAssts cs as = do
 -- | Transform constraint to assertion
 constraintToAsst :: Constraint () -> Transform (Maybe (Asst ()), Name ())
 constraintToAsst (FunConstraint _ fun v) = do
-    cname <- toClassQName fun
+    cname <- toOuterClassQName fun
     return (Just (TypeA () (TyApp () (TyCon () cname) (TyVar () v))), v) 
-constraintToAsst (PieceConstraint _ piece v) = return (Just (TypeA () (TyInfix () (TyCon () piece) 
-    (UnpromotedName () subName)  (TyVar () v))), v)
+constraintToAsst (PieceConstraint _ piece v) = return (Just (TypeA () (TyApp () 
+    (TyApp () (TyCon () partOfName)  (TyCon () piece)) (TyVar () v))), v)
 constraintToAsst (CategoryConstraint _ _category v) = return (Nothing, v)
 
 
-
-transformContext :: Context () -> Transform (Maybe (Context ()), [Name ()])
-transformContext (CxEmpty _) = return (Just (CxEmpty ()), [])
+transformContext :: Context () -> Transform (Context ())
+transformContext (CxEmpty _) = return (CxEmpty ())
 transformContext (CxSingle _ asst) = transformContext' [asst]     
 transformContext (CxTuple _ assts) = transformContext' assts
 
-transformContext' :: [Asst ()] -> Transform (Maybe (Context ()), [Name ()])
+transformContext' :: [Asst ()] -> Transform (Context ())
 transformContext' assts = do
     asstvars <- mapM transformAsst assts 
-    let (assts', vars) = unzip asstvars
-    return (Just (contextFromList (catMaybes assts')), catMaybes vars)
+    let (assts', _vars) = unzip asstvars
+    return (contextFromList (catMaybes assts'))
 
 transformAsst :: Asst () -> Transform (Maybe (Asst ()), Maybe (Name ()))
 transformAsst (CompCont _ constraint) = do
     (masst, v) <- constraintToAsst constraint
     return (masst, (Just v))
+transformAsst (ParenA _ asst) = transformAsst asst
 transformAsst asst = return (Just asst, Nothing) 

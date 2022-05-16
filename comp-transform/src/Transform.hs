@@ -5,6 +5,7 @@ module Transform (transform) where
 
 import Language.Haskell.Exts
 
+import qualified GeneratedNames as Names
 import FunctionTransform
 import PieceTransform
 import TransformUtils
@@ -51,28 +52,28 @@ transformExp e@(Con _ qcon) = do
     (_, constrs) <- ask
     if Set.member qcon constrs
         then do
-             smartCon <- toSmartCon qcon
+             smartCon <- Names.qSmartCon qcon
              return $ Var () smartCon
         else return e
 transformExp e@(InfixApp _ expr1 (QConOp _ qcon) expr2) = do
     (_, constrs) <- ask
     if Set.member qcon constrs
         then do
-             smartCon <- toSmartCon qcon
+             smartCon <- Names.qSmartCon qcon
              return $ InfixApp () expr1 (QVarOp () smartCon) expr2
         else return e
 transformExp e@(LeftSection _ expr (QConOp _ qcon)) = do
     (_, constrs) <- ask
     if Set.member qcon constrs
         then do
-             smartCon <- toSmartCon qcon
+             smartCon <- Names.qSmartCon qcon
              return $ LeftSection () expr (QVarOp () smartCon)
         else return e
 transformExp e@(RightSection _ (QConOp _ qcon) expr) = do
     (_, constrs) <- ask
     if Set.member qcon constrs
         then do
-             smartCon <- toSmartCon qcon
+             smartCon <- Names.qSmartCon qcon
              return $ RightSection () (QVarOp () smartCon) expr
         else return e
 transformExp e@(RecConstr _ qcon _) = do
@@ -123,9 +124,7 @@ buildSigPiece  ((PieceDecl _ category headName _cons _derives):decls) sig = do
     sig' <- buildSigPiece decls sig
     case Map.lookup category sig' of
         Just oldCons -> return $ Map.insert category (Set.insert (UnQual () headName) oldCons) sig'
-        Nothing -> do
-            catStr <- qNameStr ("Category in PieceDecl") category 
-            throwError $ "Category \"" ++ catStr ++ "\" not declared."
+        Nothing -> throwError $ "Category \"" ++ prettyPrint category ++ "\" not declared."
 buildSigPiece (_:decls) sig = buildSigPiece decls sig
 
 -- | Build set of all piece constructors

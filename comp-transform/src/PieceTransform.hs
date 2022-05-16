@@ -1,8 +1,9 @@
 
-module PieceTransform (transformPieceDecl, transformCompType, toSmartCon) where
+module PieceTransform (transformPieceDecl, transformCompType) where
 
 import Language.Haskell.Exts
 
+import qualified GeneratedNames as Names
 import TransformUtils
 
 import qualified Data.Map as Map
@@ -15,15 +16,14 @@ import Control.Monad.Except
 -- | Transform a top level declaration to one or more new declarations
 transformPieceDecl :: Decl () -> Transform [Decl ()]
 transformPieceDecl (PieceDecl _ category pieceName cons derives) = 
-    let parname = getParName
-        cspar = map (parametConstructor parname category) cons
+    let cspar = map (parametConstructor Names.recursiveVar category) cons
         in do
     smartCons <- concat <$> mapM (smartCon category pieceName) cons
     return (DataDecl 
         ()
         (DataType ())
         Nothing 
-        (DHApp () (DHead () pieceName) (UnkindedVar () parname))
+        (DHApp () (DHead () pieceName) (UnkindedVar () Names.recursiveVar))
         cspar
         derives
         : smartCons)
@@ -34,19 +34,13 @@ transformPieceDecl d = return [d]
 transformCompType :: Type () -> Transform (Type ())
 transformCompType (TyComp _ category types) = do
     (cats, _) <- ask
-    catStr <- lift $ qNameStr "TyComp" category 
     case Map.lookup category cats of
-        Nothing -> throwError $ "Trying to form type of unknown category: " ++ catStr
+        Nothing -> throwError $ "Trying to form type of unknown category: " ++ prettyPrint category
         Just pieces -> do 
-            lift $ checkInCategory catStr pieces types
+            lift $ checkInCategory category pieces types
             coprodtype <- coprod types
             return $ termApp (TyParen () coprodtype)
 transformCompType t = return t
-
--- | Get a name for the parametrized variable.
-getParName :: Name ()
-getParName = name "composable_types_recursive_var"
-
 
 -- | Form coproduct type from a list of pieces
 coprod :: [QName ()] -> Transform (Type ())
@@ -59,13 +53,11 @@ coprod (nam:ns) = do
 coprod _ = throwError "Trying to form coproduct of no arguments"
 
 -- | Check if all parts of a composition type are in the category
-checkInCategory :: String -> Set (QName ()) -> [QName ()] -> Except String ()
+checkInCategory :: QName () -> Set (QName ()) -> [QName ()] -> Except String ()
 checkInCategory _ _ [] = return ()
 checkInCategory category pieces (p:ps) = if Set.member p pieces
     then checkInCategory category pieces ps
-    else do
-        pName <- qNameStr ("TyComp with " ++ show p) p
-        throwError $ "Piece: " ++ pName ++ " not found in category: " ++ category
+    else throwError $ "Piece: " ++ prettyPrint p ++ " not found in category: " ++ prettyPrint category
 
 {- | Parametrize a piece constructor to have a parametrized variable as recursive 
     parameter instead of the name of the category it belongs to.
@@ -94,7 +86,7 @@ collectTypes (QualConDecl _ _ _ conDecl) = conDeclArgs conDecl
 
 smartCon :: QName () -> Name () -> QualConDecl () -> Transform [Decl ()]
 smartCon cat piece con = do
-    funName <- toSmartName conName
+    funName <- Names.smartCon conName
     let pattern = pApp funName (pvar <$> argNames)
     return $ [typeBinding funName, patBind pattern expr]
   where
@@ -110,11 +102,3 @@ smartCon cat piece con = do
     
     expr = app injectExp (foldl app (Con () $ UnQual () conName) (var <$> argNames))
 
-toSmartCon :: QName () -> Transform (QName ())
-toSmartCon (UnQual ()            nam) = UnQual ()            <$> toSmartName nam
-toSmartCon (Qual   () moduleName nam) = Qual   () moduleName <$> toSmartName nam
-toSmartCon qname                                 = throwError $ "Tried to transform unexpected constructor name \"" ++ prettyPrint qname ++ "\"." 
-
-toSmartName :: Name () -> Transform (Name ())
-toSmartName (Ident () str) = return $ name ("composable_types_constructor_" ++ str)
-toSmartName nam           = throwError $ "Tried to transform unexpected constructor name \"" ++ prettyPrint nam ++ "\"."

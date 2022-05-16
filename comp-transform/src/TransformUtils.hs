@@ -4,6 +4,8 @@ module TransformUtils where
 
 import Language.Haskell.Exts
 
+import qualified GeneratedNames as Names
+
 import           Data.Map   (Map)
 import           Data.Set   (Set)
 import           Data.Maybe (catMaybes)
@@ -20,49 +22,6 @@ type Constrs = Set (QName ())
 -- | Transform monad containing signature of categories and handles error messages as Strings.
 type Transform = ReaderT (Sig, Constrs) (Except String)
 
--- | Return string part of a name with custom error message
-nameStr :: MonadError String m => String -> Name () -> m String
-nameStr _ (Ident _ str) = return str
-nameStr err _ = throwError $ "Expected ident name in " ++ err ++  ", but it was not that." 
-
--- | Return string part of QName with custom error message
-qNameStr :: String -> QName () -> Except String String
-qNameStr err (Qual _ _moduleName nam) = nameStr err nam
-qNameStr err (UnQual _ nam) = nameStr err nam
-qNameStr err _ = throwError $ "Unexpected special QName in " ++ err
-
--- | Transform function name to class name, with capital first letter
-toClassName :: Name () -> Transform (Name ())
-toClassName nam = do
-    str <- nameStr ("CompFunDecl with " ++ show nam) nam
-    return $ name ("Composable_types_inner_class_" ++ str)
-  
--- | Transform a qualified function name to a qualified class name
-toClassQName :: QName () -> Transform (QName ())
-toClassQName (Qual _ moduleName fname) = do
-                cname <- toClassName fname
-                return $ Qual () moduleName cname
-toClassQName (UnQual _ fname) = do 
-                cname <- toClassName fname
-                return $ UnQual () cname
-toClassQName _ = throwError "Unexpected special qname of function name"
-
-toOuterClassName :: Name () -> Transform (Name ())
-toOuterClassName nam = do
-    str <- nameStr ("CompFunDecl with " ++ show nam) nam
-    return $ name ("Composable_types_outer_class_" ++ str)
-
--- | Transform a qualified function name to a qualified class name
-toOuterClassQName :: QName () -> Transform (QName ())
-toOuterClassQName (Qual _ moduleName fname) = do
-                cname <- toOuterClassName fname
-                return $ Qual () moduleName cname
-toOuterClassQName (UnQual _ fname) = do 
-                cname <- toOuterClassName fname
-                return $ UnQual () cname
-toOuterClassQName _ = throwError "Unexpected special qname of function name"
-    
-    
 compdata :: ModuleName ()
 compdata = ModuleName () "Data.Comp"
 
@@ -141,7 +100,7 @@ addToAssts cs as = do
 -- | Transform constraint to assertion
 constraintToAsst :: Constraint () -> Transform (Maybe (Asst ()), Name ())
 constraintToAsst (FunConstraint _ fun v) = do
-    cname <- toOuterClassQName fun
+    cname <- Names.qOuterClass fun
     return (Just (TypeA () (TyApp () (TyCon () cname) (TyVar () v))), v) 
 constraintToAsst (PieceConstraint _ piece v) = return (Just (TypeA () (TyApp () 
     (TyApp () (TyCon () partOfName)  (TyCon () piece)) (TyVar () v))), v)

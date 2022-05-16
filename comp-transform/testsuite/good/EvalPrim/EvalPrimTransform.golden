@@ -11,23 +11,24 @@ import qualified Data.Comp.Show ()
 import qualified Data.Comp.Equality ()
 import qualified ComposableTypes
 
-class Composable_types_class_eval f where
+class Composable_types_inner_class_eval f where
         composable_types_class_function_eval ::
-                                               (Composable_types_class_eval g) =>
+                                               (Composable_types_inner_class_eval g) =>
                                                f (Data.Comp.Term g) -> Bool -> String
-
-eval ::
-       (Composable_types_class_eval g) =>
-       Data.Comp.Term g -> Bool -> String
-eval = composable_types_class_function_eval . Data.Comp.unTerm
-
-{-# NOINLINE eval #-}
 
 $(
   Data.Comp.Derive.derive [Data.Comp.Derive.liftSum]
-    [''Composable_types_class_eval]
+    [''Composable_types_inner_class_eval]
   )
 
+class Composable_types_outer_class_eval t where
+        eval :: t -> Bool -> String
+
+instance Composable_types_inner_class_eval g =>
+         Composable_types_outer_class_eval (Data.Comp.Term g)
+         where
+        eval = composable_types_class_function_eval . Data.Comp.unTerm
+
 eval2 ::
-        Composable_types_class_eval a => Data.Comp.Term a -> String
+        Composable_types_inner_class_eval a => Data.Comp.Term a -> String
 eval2 a = eval a False

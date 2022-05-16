@@ -82,32 +82,33 @@ composable_types_constructor_T3 ::
                                   T3 Data.Comp.:<: g => Data.Comp.Term g -> Data.Comp.Term g
 composable_types_constructor_T3 arg_1 = Data.Comp.inject (T3 arg_1)
 
-class () => Composable_types_class_transform f a where
+class () => Composable_types_inner_class_transform f a where
         composable_types_class_function_transform ::
-                                                    (Composable_types_class_transform g a) =>
+                                                    (Composable_types_inner_class_transform g a) =>
                                                     f (Data.Comp.Term g) -> Data.Comp.Term a
-
-transform ::
-            (Composable_types_class_transform g a) =>
-            Data.Comp.Term g -> Data.Comp.Term a
-transform
-  = composable_types_class_function_transform . Data.Comp.unTerm
-
-{-# NOINLINE transform #-}
 
 $(
   Data.Comp.Derive.derive [Data.Comp.Derive.liftSum]
-    [''Composable_types_class_transform]
+    [''Composable_types_inner_class_transform]
   )
 
+class Composable_types_outer_class_transform t a where
+        transform :: t -> Data.Comp.Term a
+
+instance Composable_types_inner_class_transform g a =>
+         Composable_types_outer_class_transform (Data.Comp.Term g) a
+         where
+        transform
+          = composable_types_class_function_transform . Data.Comp.unTerm
+
 instance T Data.Comp.:<: a =>
-         Composable_types_class_transform Value a
+         Composable_types_inner_class_transform Value a
          where
         composable_types_class_function_transform (Const c)
           = composable_types_constructor_T $ show c
 
 instance T2 Data.Comp.:<: a =>
-         Composable_types_class_transform Op a
+         Composable_types_inner_class_transform Op a
          where
         composable_types_class_function_transform (Add e1 e2)
           = composable_types_constructor_T2 (transform e1) "+" (transform e2)
@@ -115,7 +116,7 @@ instance T2 Data.Comp.:<: a =>
           = composable_types_constructor_T2 (transform e1) "*" (transform e2)
 
 instance (T3 Data.Comp.:<: a, T2 Data.Comp.:<: a) =>
-         Composable_types_class_transform PairOp a
+         Composable_types_inner_class_transform PairOp a
          where
         composable_types_class_function_transform (Fst e1 e2)
           = composable_types_constructor_T3 (transform e1)

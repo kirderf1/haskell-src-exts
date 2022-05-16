@@ -18,23 +18,26 @@ composable_types_constructor_B ::
                                  B Data.Comp.:<: g => Data.Comp.Term g
 composable_types_constructor_B = Data.Comp.inject B
 
-class Composable_types_class_c f where
+class Composable_types_inner_class_c f where
         composable_types_class_function_c ::
-                                            (Composable_types_class_c g) =>
+                                            (Composable_types_inner_class_c g) =>
                                             f (Data.Comp.Term g) -> ()
-
-c :: (Composable_types_class_c g) => Data.Comp.Term g -> ()
-c = composable_types_class_function_c . Data.Comp.unTerm
-
-{-# NOINLINE c #-}
 
 $(
   Data.Comp.Derive.derive [Data.Comp.Derive.liftSum]
-    [''Composable_types_class_c]
+    [''Composable_types_inner_class_c]
   )
+
+class Composable_types_outer_class_c t where
+        c :: t -> ()
+
+instance Composable_types_inner_class_c g =>
+         Composable_types_outer_class_c (Data.Comp.Term g)
+         where
+        c = composable_types_class_function_c . Data.Comp.unTerm
 
 d ::
   forall a e .
-    (B Data.Comp.:<: a, Composable_types_class_c a, Show e) =>
+    (B Data.Comp.:<: a, Composable_types_inner_class_c a, Show e) =>
     Data.Comp.Term a -> e -> ((), Data.Comp.Term a)
 d a _ = (c a, composable_types_constructor_B)

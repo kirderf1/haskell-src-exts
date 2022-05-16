@@ -35,7 +35,7 @@ qNameStr err _ = throwError $ "Unexpected special QName in " ++ err
 toClassName :: Name () -> Transform (Name ())
 toClassName nam = do
     str <- nameStr ("CompFunDecl with " ++ show nam) nam
-    return $ name ("Composable_types_class_" ++ str)
+    return $ name ("Composable_types_inner_class_" ++ str)
   
 -- | Transform a qualified function name to a qualified class name
 toClassQName :: QName () -> Transform (QName ())
@@ -46,6 +46,11 @@ toClassQName (UnQual _ fname) = do
                 cname <- toClassName fname
                 return $ UnQual () cname
 toClassQName _ = throwError "Unexpected special qname of function name"
+
+toOuterClassName :: Name () -> Transform (Name ())
+toOuterClassName nam = do
+    str <- nameStr ("CompFunDecl with " ++ show nam) nam
+    return $ name ("Composable_types_outer_class_" ++ str)
 
 compdata :: ModuleName ()
 compdata = ModuleName () "Data.Comp"

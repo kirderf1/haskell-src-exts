@@ -2,6 +2,7 @@ module FunctionTransform (transformFunDecl) where
 
 import Language.Haskell.Exts
 
+import qualified GeneratedNames as Names
 import TransformUtils
 import Utils.Types
 import Utils.Names
@@ -18,14 +19,13 @@ transformFunDecl (CompFunDecl _ names _mtvs mccx mcx category t) = do
     if Map.member category sig
       then concat <$> (declsForName `mapM` names)
       else do
-          catStr <- lift $ qNameStr "CompFunDecl" category
-          throwError $ "Expected first argument to be a piece category, was: \"" ++ catStr ++ "\""
+          throwError $ "Expected first argument to be a piece category, was: \"" ++ prettyPrint category ++ "\""
   where
     declsForName :: Name () -> Transform [Decl ()]
     declsForName nam = do
-        className <- toClassName nam
-        outerClassName <- toOuterClassName nam
-        funcName <- toFuncName nam
+        className <- Names.innerClass nam
+        outerClassName <- Names.outerClass nam
+        funcName <- Names.classFunction nam
         let tyvarNames = collectUniqueVars t
         classDecl <- functionClass mcx className funcName t tyvarNames
         return
@@ -42,10 +42,6 @@ transformFunDecl (CompFunExt _ mtvs mccx mcx funName types pieceName (Just instD
     instDecls' <- mapM transformInstDecl instDecls
     return [InstDecl () Nothing instHead (Just instDecls')]
 transformFunDecl d = return [d]
-
--- | Transform function to function name with prime
-toFuncName :: Name () -> Transform (Name ())
-toFuncName nam = (\n -> name ("composable_types_class_function_" ++ n)) <$> nameStr ("CompFuncDecl with " ++ show nam) nam
 
 -- | Build a declaration of a class corresponding to a function
 functionClass :: Maybe (Context ()) -> Name () -> Name () -> Type () -> [Name ()] -> Transform (Decl ())
@@ -80,7 +76,7 @@ liftSum className = SpliceDecl () (SpliceExp () (ParenSplice () (app (app (deriv
 -- | Create instance head (roughly the first line of an instance declaration)
 createInstHead :: Maybe [TyVarBind ()] -> Maybe (CompContext ()) -> Maybe (Context ()) -> Name () -> [Type ()] -> QName () -> Transform (InstRule ())
 createInstHead mtvs _mccx mcx funName types pieceName = do
-    className <- toClassName funName
+    className <- Names.innerClass funName
     return $ irule className mcx
   where
     irule className mcx' = IRule () mtvs Nothing mcx' (ihead className types)
@@ -98,10 +94,10 @@ transformInstDecl _ = throwError "Unexpected type of instance declaration"
 -- | Transform function part of the instance declaration to have a prime on function name
 transformMatch :: Match () -> Transform (Match ())
 transformMatch (Match _ funName patterns rhs maybeBinds) = do
-    funName' <- toFuncName funName
+    funName' <- Names.classFunction funName
     return (Match () funName' patterns rhs maybeBinds)
 transformMatch (InfixMatch _ pat funName patterns rhs maybeBinds) = do
-    funName' <- toFuncName funName
+    funName' <- Names.classFunction funName
     return (InfixMatch () pat funName' patterns rhs maybeBinds)
 
 outerClass :: Name () -> Name () -> Type () -> [Name ()] -> Decl ()

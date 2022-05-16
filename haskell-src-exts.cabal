@@ -115,6 +115,7 @@ executable program
                     Utils.Types,
                     Utils.Decls,
                     Utils.Exps,
+                    Utils.Contexts,
                     Utils.Names
   Build-Tools:      happy >= 1.19
   build-depends:    array >= 0.1, pretty >= 1.0,
@@ -136,6 +137,7 @@ executable testsuite
                     Utils.Types,
                     Utils.Decls,
                     Utils.Exps,
+                    Utils.Contexts,
                     Utils.Names
   Build-Tools:      happy >= 1.19
   build-depends:    array >= 0.1, pretty >= 1.0,

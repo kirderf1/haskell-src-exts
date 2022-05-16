@@ -151,7 +151,8 @@ buildConstrs (_:decls) = buildConstrs decls
 modifyImports :: [ImportDecl ()] -> [ImportDecl ()]
 modifyImports is =  foldr addImport is
                                 ["Data.Comp", "Data.Comp.Derive",
-                                 "Data.Comp.Show ()", "Data.Comp.Equality ()"] 
+                                 "Data.Comp.Show ()", "Data.Comp.Equality ()",
+                                 "ComposableTypes"] 
     where  
         addImport :: String -> [ImportDecl ()] -> [ImportDecl ()]
         addImport nam is1 = if importsContain nam is1 

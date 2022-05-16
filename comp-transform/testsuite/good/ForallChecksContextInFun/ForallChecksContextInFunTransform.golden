@@ -10,6 +10,7 @@ import qualified Data.Comp
 import qualified Data.Comp.Derive
 import qualified Data.Comp.Show ()
 import qualified Data.Comp.Equality ()
+import qualified ComposableTypes
 
 data B composable_types_recursive_var = B
 

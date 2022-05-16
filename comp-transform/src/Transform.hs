@@ -11,6 +11,7 @@ import TransformUtils
 import Utils.Types
 import Utils.Decls
 import Utils.Exps
+import Utils.Contexts
 
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -38,23 +39,11 @@ transformModule m@(Module _ mhead pragmas imports decls) =
             mapDecl transformFunDecl 
                 =<< mapDecl transformPieceDecl
                 =<< mapExp transformExp
-                =<< mapType transformCompType
-                =<< mapType transformType (Module () mhead pragmas' imports' decls)
+                =<< mapContext transformContext
+                =<< mapType transformCompType (Module () mhead pragmas' imports' decls)
         else return m
 transformModule _xml = throwError "transformModule not defined for xml formats" 
 -- ^ XmlPage and XmlHybrid formats not handled (yet)
-
--- | Transform a type
-transformType :: Type () -> Transform (Type ())
---transformType (TyForall _ mfa (Just ccx) mcx t) = do
---    (mcx', vars) <- transformCompContext ccx mcx 
---    t' <- mapType (exchangeToTerm vars) t
---    return $ TyForall () mfa Nothing mcx' t'
-tranformType (TyForall _ mfa Nothing (Just cx) t) = do
-    (mcx', vars) <- transformContext cx
-    t' <- mapType (exchangeToTerm vars) t
-    return $ TyForall() mfa Nothing mcx' t'
-transformType t = return t
 
 -- | Transform an expression
 transformExp :: Exp () -> Transform (Exp ())

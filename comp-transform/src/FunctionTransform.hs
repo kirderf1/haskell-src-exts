@@ -23,23 +23,15 @@ transformFunDecl (CompFunDecl _ names _mtvs mccx mcx category t) = do
   where
     declsForName :: Name () -> Transform [Decl ()]
     declsForName nam = do
---        (mcx', vars) <- case mccx of 
---                Nothing -> return (mcx, [])
---                Just ccx -> transformCompContext ccx mcx 
---        t' <- mapType (exchangeToTerm vars) t
-        (mcx', vars) <- case mcx of 
-                Nothing -> return (mcx, [])
-                Just cx -> transformContext cx 
-        t' <- mapType (exchangeToTerm vars) t
         className <- toClassName nam
         outerClassName <- toOuterClassName nam
         funcName <- toFuncName nam
-        let tyvarNames = collectUniqueVars t'
-        classDecl <- functionClass mcx' className funcName t' tyvarNames
+        let tyvarNames = collectUniqueVars t
+        classDecl <- functionClass mcx className funcName t tyvarNames
         return
           [ classDecl
           , liftSum className
-          , outerClass outerClassName nam t' tyvarNames
+          , outerClass outerClassName nam t tyvarNames
           , outerInstance className outerClassName funcName nam tyvarNames
           ]
 transformFunDecl (CompFunExt _ mtvs mccx mcx funName types pieceName Nothing) = do
@@ -87,13 +79,9 @@ liftSum className = SpliceDecl () (SpliceExp () (ParenSplice () (app (app (deriv
 
 -- | Create instance head (roughly the first line of an instance declaration)
 createInstHead :: Maybe [TyVarBind ()] -> Maybe (CompContext ()) -> Maybe (Context ()) -> Name () -> [Type ()] -> QName () -> Transform (InstRule ())
-createInstHead mtvs mccx mcx funName types pieceName = do
+createInstHead mtvs _mccx mcx funName types pieceName = do
     className <- toClassName funName
-    case mccx of
-         Nothing -> return $ irule className mcx
-         Just ccx -> do
-             (mcx', _vs) <- transformCompContext ccx mcx 
-             return $ irule className mcx'
+    return $ irule className mcx
   where
     irule className mcx' = IRule () mtvs Nothing mcx' (ihead className types)
     ihead className [] = IHApp () (IHCon () (UnQual () className)) (TyCon () pieceName)

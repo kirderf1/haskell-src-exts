@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -11,23 +10,31 @@ import qualified Data.Comp
 import qualified Data.Comp.Derive
 import qualified Data.Comp.Show ()
 import qualified Data.Comp.Equality ()
+import qualified ComposableTypes
 
 data B composable_types_recursive_var = C composable_types_recursive_var
-                                          deriving Functor
+
+composable_types_constructor_C ::
+                                 B Data.Comp.:<: g => Data.Comp.Term g -> Data.Comp.Term g
+composable_types_constructor_C arg_1 = Data.Comp.inject (C arg_1)
+
+class Composable_types_inner_class_d f where
+        composable_types_class_function_d ::
+                                            (Composable_types_inner_class_d g) =>
+                                            f (Data.Comp.Term g) -> ()
 
 $(
-  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''B]
+  Data.Comp.Derive.derive [Data.Comp.Derive.liftSum]
+    [''Composable_types_inner_class_d]
   )
 
-class D f where
-        d' :: (D g) => f (Data.Comp.Term g) -> ()
+class Composable_types_outer_class_d t where
+        d :: t -> ()
 
-d :: (D g) => Data.Comp.Term g -> ()
-d = d' . Data.Comp.unTerm
+instance Composable_types_inner_class_d g =>
+         Composable_types_outer_class_d (Data.Comp.Term g)
+         where
+        d = composable_types_class_function_d . Data.Comp.unTerm
 
-{-# NOINLINE d #-}
-
-$( Data.Comp.Derive.derive [Data.Comp.Derive.liftSum] [''D] )
-
-instance forall e . D B where
-        d' (C a) = d a
+instance forall e . Composable_types_inner_class_d B where
+        composable_types_class_function_d (C a) = d a

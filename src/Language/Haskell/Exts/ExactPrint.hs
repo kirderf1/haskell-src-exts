@@ -919,64 +919,10 @@ instance ExactP Decl where
              ([end], Nothing) -> printStringAt (pos end) "#-}"
              _ -> errorEP "ExactP: Decl: CompletePragma is given wrong number of srcInfoPoints"
         _ -> errorEP "ExactP: Decl: CompletePragma is given wrong number of srcInfoPoints"
-    PieceDecl l ca dh constrs mder -> do
-        printString "data"
-        printString "piece"
-        exactPC ca
-        printString "==>"
-        exactPC dh
-        -- the next line works for empty data types since the srcInfoPoints will be empty then
-        printInterleaved (zip (srcInfoPoints l) ("=": repeat "|")) constrs
-        mapM_ exactPC mder
-    PieceCatDecl _l ca -> do
-         printString "piececategory"
-         exactPC ca
-    CompFunDecl l ns mtvs mccx mcx ca t -> do
-        let pts = srcInfoPoints l
-        printInterleaved' (zip pts (replicate (length pts - 1) "," ++ ["-:"])) ns
-        let pts2 = srcInfoPoints l
-        _ <- case mtvs of
-                Nothing -> return pts2
-                Just tvs ->
-                    case pts2 of
-                     [a,b] -> do
-                        printStringAt (pos a) "forall"
-                        mapM_ exactPC tvs
-                        printStringAt (pos b) "."
-                        return pts2
-                     _ -> errorEP "ExactP: Decl: CompFunExt is given too few srcInfoPoints"
-        maybeEP exactPC mccx
-        maybeEP exactPC mcx
-        exactPC ca
-        printString "->"
-        exactPC t
-    CompFunExt l mtvs mccx mcx fn types pn mids -> 
-        case srcInfoPoints l of 
-           _:pts -> do
-              printString "ext"
-              let pts2 = srcInfoPoints l
-              _ <- case mtvs of
-                Nothing -> return pts2
-                Just tvs ->
-                    case pts2 of
-                     [a,b] -> do
-                        printStringAt (pos a) "forall"
-                        mapM_ exactPC tvs
-                        printStringAt (pos b) "."
-                        return pts2
-                     _ -> errorEP "ExactP: Decl: CompFunExt is given too few srcInfoPoints"
-              maybeEP exactPC mccx
-              maybeEP exactPC mcx
-              exactPC fn
-              _ <- mapM ((printString "@" >>) . exactP) types
-              printString "for"
-              exactPC pn
-              maybeEP (\ids -> do
-                  let (p:pts') = pts
-                  printStringAt (pos p) "where"
-                  layoutList pts' $ sepInstFunBinds ids
-                  ) mids
-           _ -> errorEP "ExactP: Decl: CompFunExt is given too few srcInfoPoints"
+    PieceDecl _l _ca _dh _constrs _mder -> undefined
+    PieceCatDecl _l _ca -> undefined
+    CompFunDecl _l _ns _mtvs _mccx _mcx _ca _t -> undefined
+    CompFunExt _l _mtvs _mccx _mcx _fn _types _pn _mids -> undefined
  
 
 
@@ -1180,10 +1126,7 @@ instance ExactP Type where
         printString $ "[" ++ name ++ "|"
         sequence_ (intersperse newLine $ map printString qtLines)
         printString "|]"
-    TyComp l cat pieces -> do
-        exactP cat
-        printString "==>"
-        parenList (srcInfoPoints l) pieces
+    TyComp _l _cat _pieces -> undefined
         
 instance ExactP CompContext where
     exactP _ = errorEP "ExactP: Instance not written for CompContext"

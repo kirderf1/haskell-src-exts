@@ -910,7 +910,7 @@ instance  Pretty (Type l) where
         prettyPrec _ (TyQuasiQuote _ n qt) = text ("[" ++ n ++ "|" ++ qt ++ "|]")
         prettyPrec _ (TyComp _ c ps) =
                 let ds = map pretty ps
-                 in myFsep [pretty c, text "==>", parenList ds]
+                 in myFsep [pretty c, text "==>", tyCompList ds]
 
 instance Pretty (MaybePromotedName l) where
   pretty (PromotedName _ q) = char '\'' <> ppQNameInfix q
@@ -1488,6 +1488,9 @@ hashParenList = hashParens . myFsepSimple . punctuate comma
 unboxedSumType :: [Doc] -> Doc
 unboxedSumType = hashParens . myFsepSimple . punctuate (text " |")
 
+tyCompList :: [Doc] -> Doc
+tyCompList = parens . myFsepSimple . punctuate (text " |")
+
 hashParens :: Doc -> Doc
 hashParens = parens . hashes
   where
@@ -1756,4 +1759,4 @@ instance SrcInfo loc => Pretty (P.PType loc) where
         prettyPrec _ (P.TyQuasiQuote _ n qt) = text ("[$" ++ n ++ "|" ++ qt ++ "|]")
         prettyPrec _ (P.TyComp _ c ps) =
                 let ds = map pretty ps
-                 in myFsep [pretty c, text "==>", parenList ds]
+                 in myFsep [pretty c, text "==>", tyCompList ds]

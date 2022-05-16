@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -10,19 +9,19 @@ import qualified Data.Comp
 import qualified Data.Comp.Derive
 import qualified Data.Comp.Show ()
 import qualified Data.Comp.Equality ()
+import qualified ComposableTypes
 
 data B composable_types_recursive_var = B Int
-                                          deriving Functor
 
-$(
-  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''B]
-  )
+composable_types_constructor_B ::
+                                 B Data.Comp.:<: g => Int -> Data.Comp.Term g
+composable_types_constructor_B arg_1 = Data.Comp.inject (B arg_1)
 
-data C composable_types_recursive_var = C deriving Functor
+data C composable_types_recursive_var = C
 
-$(
-  Data.Comp.Derive.derive [Data.Comp.Derive.smartConstructors] [''C]
-  )
+composable_types_constructor_C ::
+                                 C Data.Comp.:<: g => Data.Comp.Term g
+composable_types_constructor_C = Data.Comp.inject C
 
 d :: B Data.Comp.:<: a => Data.Comp.Term a -> Int
 d composable_types_var = d' (Data.Comp.project composable_types_var)

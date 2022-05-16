@@ -23,12 +23,15 @@ main = do
       
  
 type TestSuite = ([FilePath], [FilePath], [FilePath])
-  
+
+lib :: FilePath
+lib = "comp-transform" </> "lib"
+
 testsuite :: FilePath
 testsuite = "comp-transform" </> "testsuite"
 
 groups :: [FilePath]
-groups = ["good", "unclear", "bad"]
+groups = ["good", "bad"]
   
 getTestFiles :: FilePath -> IO [FilePath]
 getTestFiles mainDir = do
@@ -75,14 +78,10 @@ runCompileTest :: FilePath -> FilePath -> FilePath -> IO ()
 runCompileTest dir file outFile = do
     -- let runFile = dropExtension file
     createDirectoryIfMissing True dir
-    (exit,_out,_err) <- readProcessWithExitCode "ghc" ["-outputdir", dir, "-o", dir </> "output", file] []
+    (exit,_out,err) <- readProcessWithExitCode "ghc" ["-i" ++ lib, "-outputdir", dir, file] []
     case exit of
          ExitSuccess -> writeFileAndCreateDirectory outFile $  "OK \n"
-         ExitFailure _ -> do 
-            (exit2,_out2,err2) <- readProcessWithExitCode "ghc" ["-outputdir", dir, file] []
-            case exit2 of
-                ExitFailure _ -> writeFileAndCreateDirectory outFile err2
-                ExitSuccess -> writeFileAndCreateDirectory outFile $  "OK \n"
+         ExitFailure _ ->  writeFileAndCreateDirectory outFile err
 
 writeFileAndCreateDirectory :: FilePath -> String -> IO ()
 writeFileAndCreateDirectory file text = do

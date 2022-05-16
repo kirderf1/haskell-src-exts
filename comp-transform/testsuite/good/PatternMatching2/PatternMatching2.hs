@@ -11,7 +11,7 @@ d :: A ==> B -> Int
 d a = case a of
         (B i) -> i
 
-e :: A ==> (B, C) -> Int
+e :: A ==> (B | C) -> Int
 e a = case a of
         (B i) -> i
         C     -> 0

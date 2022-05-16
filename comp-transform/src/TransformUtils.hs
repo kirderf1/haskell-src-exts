@@ -6,7 +6,6 @@ import Language.Haskell.Exts
 
 import           Data.Map   (Map)
 import           Data.Set   (Set)
-import           Data.Char (toUpper)
 import           Data.Maybe (catMaybes)
 
 import Control.Monad.Reader
@@ -36,8 +35,7 @@ qNameStr err _ = throwError $ "Unexpected special QName in " ++ err
 toClassName :: Name () -> Transform (Name ())
 toClassName nam = do
     str <- nameStr ("CompFunDecl with " ++ show nam) nam
-    let (s:ss) = str
-    return $ name (toUpper s : ss)
+    return $ name ("Composable_types_inner_class_" ++ str)
   
 -- | Transform a qualified function name to a qualified class name
 toClassQName :: QName () -> Transform (QName ())
@@ -49,13 +47,22 @@ toClassQName (UnQual _ fname) = do
                 return $ UnQual () cname
 toClassQName _ = throwError "Unexpected special qname of function name"
 
--- | Build type of name for term 
-termName :: Type ()
-termName = TyCon () (Qual () (ModuleName () "Data.Comp") (name "Term"))
+toOuterClassName :: Name () -> Transform (Name ())
+toOuterClassName nam = do
+    str <- nameStr ("CompFunDecl with " ++ show nam) nam
+    return $ name ("Composable_types_outer_class_" ++ str)
 
--- | Template Haskell derive for a piece
-deriveTHPiece :: Name () -> Decl () 
-deriveTHPiece pieceName = deriveTH pieceName ["smartConstructors"]
+compdata :: ModuleName ()
+compdata = ModuleName () "Data.Comp"
+
+termApp :: Type () -> Type ()
+termApp = TyApp () (TyCon () (Qual () compdata (name "Term")))
+
+subName :: QName ()
+subName = (Qual () compdata (Symbol () ":<:"))
+
+injectExp :: Exp ()
+injectExp = qvar compdata (name "inject")
 
 -- | Template Haskell derive for a certain data type from a list of things to derive
 deriveTH :: Name () -> [String] -> Decl () 
@@ -78,7 +85,7 @@ deriveTHListElem nam = qvar (ModuleName () "Data.Comp.Derive") (name nam)
 
 -- | Change a type variable to be a term
 exchangeToTerm :: [Name ()] -> Type () -> Transform (Type ())
-exchangeToTerm vars v@(TyVar _ vname) | vname `elem` vars = return $ TyApp () termName v
+exchangeToTerm vars v@(TyVar _ vname) | vname `elem` vars = return $ termApp v
 exchangeToTerm _ t = return t
 
 
@@ -120,7 +127,7 @@ constraintToAsst (FunConstraint _ fun v) = do
     cname <- toClassQName fun
     return (Just (TypeA () (TyApp () (TyCon () cname) (TyVar () v))), v) 
 constraintToAsst (PieceConstraint _ piece v) = return (Just (TypeA () (TyInfix () (TyCon () piece) 
-    (UnpromotedName () (Qual () (ModuleName () "Data.Comp") (Symbol () ":<:")))  (TyVar () v))), v)
+    (UnpromotedName () subName)  (TyVar () v))), v)
 constraintToAsst (CategoryConstraint _ _category v) = return (Nothing, v)
 
 

@@ -143,7 +143,6 @@ buildConstrs (_:decls) = buildConstrs decls
 modifyImports :: [ImportDecl ()] -> [ImportDecl ()]
 modifyImports is =  foldr addImport is
                                 ["Data.Comp", "Data.Comp.Derive",
-                                 "Data.Comp.Show ()", "Data.Comp.Equality ()",
                                  libraryModule] 
     where  
         addImport :: String -> [ImportDecl ()] -> [ImportDecl ()]

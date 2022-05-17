@@ -33,7 +33,7 @@ transform _xml = throwError "transform not defined for xml formats"
 -- | Transform a module to remove syntax for composable types if the pragma is present
 transformModule :: Module () -> Transform (Module ())
 transformModule m@(Module _ mhead pragmas imports decls) =
-    if pragmasContain "ComposableTypes" pragmas
+    if pragmasContain pragmaName pragmas
         then do
             let pragmas' = modifyPragmas pragmas
                 imports' = modifyImports imports
@@ -94,7 +94,7 @@ modifyPragmas ps =  foldr addPragma (removeCompTypes ps)
         addPragma nam prs = if pragmasContain nam prs 
                                  then prs
                                  else LanguagePragma () [name nam] : prs
-        removeCompTypes = filter (not . matchPragma "ComposableTypes")
+        removeCompTypes = filter (not . matchPragma pragmaName)
 
 -- | Check if the list of pragmas contain a certain one
 pragmasContain :: String -> [ModulePragma ()] -> Bool
@@ -144,7 +144,7 @@ modifyImports :: [ImportDecl ()] -> [ImportDecl ()]
 modifyImports is =  foldr addImport is
                                 ["Data.Comp", "Data.Comp.Derive",
                                  "Data.Comp.Show ()", "Data.Comp.Equality ()",
-                                 "ComposableTypes"] 
+                                 libraryModule] 
     where  
         addImport :: String -> [ImportDecl ()] -> [ImportDecl ()]
         addImport nam is1 = if importsContain nam is1 
@@ -168,4 +168,9 @@ importsContain nam = any (matchImport nam)
 -- | Check if an import declaration match the given String
 matchImport :: String -> ImportDecl () -> Bool
 matchImport s (ImportDecl {importModule = ModuleName _ nam}) = nam == s
+
+-- | String constants relating to this language extension
+pragmaName, libraryModule :: String
+pragmaName    = "ComposableTypes"
+libraryModule = "ComposableTypes"
 

@@ -1,5 +1,4 @@
 {-# LANGUAGE ComposableTypes #-}
-{-# LANGUAGE ExplicitForAll #-}
 
 module ContextInExt where
 

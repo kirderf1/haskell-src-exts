@@ -4,7 +4,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE ExplicitForAll #-}
 module ContextInExt where
 import qualified Data.Comp
 import qualified Data.Comp.Derive

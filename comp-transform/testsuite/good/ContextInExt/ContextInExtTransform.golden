@@ -35,5 +35,5 @@ instance Composable_types_inner_class_d g =>
          where
         d = composable_types_class_function_d . Data.Comp.unTerm
 
-instance forall e . Composable_types_inner_class_d B where
+instance () => Composable_types_inner_class_d B where
         composable_types_class_function_d (C a) = d a

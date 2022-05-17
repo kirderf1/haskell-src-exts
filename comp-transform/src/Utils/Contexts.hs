@@ -56,8 +56,8 @@ instance ContextMap Decl where
             CompletePragma   l cs ty         -> return $ CompletePragma l cs ty
             PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh <$> (mapContext f `mapM` cds) <*> (mapContext f `mapM` ders)
             PieceCatDecl l ca                -> return $ PieceCatDecl l ca
-            CompFunDecl  l ns mtv mccx mcx ca t      -> CompFunDecl l ns <$> ((mapContext f `mapM`) `mapM` mtv) <*> return mccx <*> (mapContext f `mapM` mcx) <*> return ca <*> mapContext f t
-            CompFunExt   l mtv mccx mcx fn ts pn ids -> CompFunExt l <$> ((mapContext f `mapM`) `mapM` mtv) <*> return mccx <*> (mapContext f `mapM` mcx) <*> return fn <*> mapContext f `mapM` ts <*> return pn <*> ((mapContext f `mapM`) `mapM` ids)
+            CompFunDecl  l ns mcx ca t       -> CompFunDecl l ns <$> (mapContext f `mapM` mcx) <*> return ca <*> mapContext f t
+            CompFunExt   l mcx fn ts pn ids  -> CompFunExt l <$> (mapContext f `mapM` mcx) <*> return fn <*> mapContext f `mapM` ts <*> return pn <*> ((mapContext f `mapM`) `mapM` ids)
             
 
 instance ContextMap PatternSynDirection where
@@ -84,8 +84,8 @@ instance ContextMap DeclHead where
     mapContext f (DHApp l dh t)        = DHApp l <$> mapContext f dh <*> mapContext f t
 
 instance ContextMap InstRule where
-    mapContext f (IRule l mtv mccx cxt qn) = IRule l <$> ((mapContext f `mapM`) `mapM` mtv) <*> return mccx <*> (mapContext f `mapM` cxt) <*> mapContext f qn
-    mapContext f (IParen l ih)             = IParen l <$> mapContext f ih
+    mapContext f (IRule l mtv cxt qn)  = IRule l <$> ((mapContext f `mapM`) `mapM` mtv) <*> (mapContext f `mapM` cxt) <*> mapContext f qn
+    mapContext f (IParen l ih)         = IParen l <$> mapContext f ih
 
 instance ContextMap InstHead where
     mapContext _ (IHCon l n)           = return $ IHCon l n
@@ -150,7 +150,7 @@ instance ContextMap GuardedRhs where
 
 instance ContextMap Type where
     mapContext f t1 = case t1 of
-          TyForall l mtvs mccx mcx t    -> TyForall l <$> ((mapContext f `mapM`) `mapM` mtvs) <*> return mccx <*> (mapContext f `mapM` mcx) <*> mapContext f t
+          TyForall l mtvs mcx t         -> TyForall l <$> ((mapContext f `mapM`) `mapM` mtvs) <*> (mapContext f `mapM` mcx) <*> mapContext f t
           TyStar  l                     -> return $ TyStar l
           TyFun   l t1' t2              -> TyFun l <$> mapContext f t1' <*> mapContext f t2
           TyTuple l b ts                -> TyTuple l b <$> (mapContext f `mapM` ts)

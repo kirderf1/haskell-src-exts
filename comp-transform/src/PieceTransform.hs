@@ -98,7 +98,7 @@ smartCon cat piece con = do
     replaceCat t                               = t
     funType = foldr (TyFun ()) internalType (replaceCat <$> argTypes)
     subAssertion = TypeA () (TyApp () (TyApp () (TyCon () partOfName) (TyCon () (UnQual () piece))) internalType)
-    typeBinding funName = TypeSig () [funName] (TyForall () Nothing Nothing (Just (CxSingle () subAssertion)) funType)
+    typeBinding funName = TypeSig () [funName] (TyForall () Nothing (Just (CxSingle () subAssertion)) funType)
     
     expr = app injectExp (foldl app (Con () $ UnQual () conName) (var <$> argNames))
 

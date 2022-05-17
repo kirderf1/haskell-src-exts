@@ -4,7 +4,6 @@ import Language.Haskell.Exts
 
 import qualified GeneratedNames as Names
 import TransformUtils
-import Utils.Types
 import Utils.Names
 
 import qualified Data.Map as Map
@@ -14,7 +13,7 @@ import Control.Monad.Except
 
 -- | Transform a top level declaration to one or more new declarations
 transformFunDecl :: Decl () -> Transform [Decl ()]
-transformFunDecl (CompFunDecl _ names _mtvs mccx mcx category t) = do
+transformFunDecl (CompFunDecl _ names mcx category t) = do
     (sig, _) <- ask
     if Map.member category sig
       then concat <$> (declsForName `mapM` names)
@@ -34,11 +33,11 @@ transformFunDecl (CompFunDecl _ names _mtvs mccx mcx category t) = do
           , outerClass outerClassName nam t tyvarNames
           , outerInstance className outerClassName funcName nam tyvarNames
           ]
-transformFunDecl (CompFunExt _ mtvs mccx mcx funName types pieceName Nothing) = do
-    instHead <- createInstHead mtvs mccx mcx funName types pieceName
+transformFunDecl (CompFunExt _ mcx funName types pieceName Nothing) = do
+    instHead <- createInstHead Nothing mcx funName types pieceName
     return [InstDecl () Nothing instHead Nothing]
-transformFunDecl (CompFunExt _ mtvs mccx mcx funName types pieceName (Just instDecls)) = do 
-    instHead <- createInstHead mtvs mccx mcx funName types pieceName
+transformFunDecl (CompFunExt _ mcx funName types pieceName (Just instDecls)) = do 
+    instHead <- createInstHead Nothing mcx funName types pieceName
     instDecls' <- mapM transformInstDecl instDecls
     return [InstDecl () Nothing instHead (Just instDecls')]
 transformFunDecl d = return [d]
@@ -61,7 +60,7 @@ classFunctionDecl functionName t = ClsDecl () (TypeSig () [functionName] t)
 transformFunType :: Name () -> Type () -> Type () -> [Name ()] -> Transform (Type ())
 transformFunType cname replType ty classVars = do
     let resT = TyFun () replType ty
-    return (TyForall () Nothing Nothing (Just (CxSingle () (ParenA () (TypeA () constraintType)))) resT)
+    return (TyForall () Nothing (Just (CxSingle () (ParenA () (TypeA () constraintType)))) resT)
   where
     constraintType = foldl (TyApp ()) (TyCon () (UnQual () cname)) (map (TyVar ()) (name "g" : classVars))
 
@@ -74,12 +73,12 @@ liftSum :: Name () -> Decl ()
 liftSum className = SpliceDecl () (SpliceExp () (ParenSplice () (app (app (deriveTHListElem "derive") (List () [deriveTHListElem "liftSum"])) (List () [TypQuote () (UnQual () className)]))))
 
 -- | Create instance head (roughly the first line of an instance declaration)
-createInstHead :: Maybe [TyVarBind ()] -> Maybe (CompContext ()) -> Maybe (Context ()) -> Name () -> [Type ()] -> QName () -> Transform (InstRule ())
-createInstHead mtvs _mccx mcx funName types pieceName = do
+createInstHead :: Maybe [TyVarBind ()] -> Maybe (Context ()) -> Name () -> [Type ()] -> QName () -> Transform (InstRule ())
+createInstHead mtvs mcx funName types pieceName = do
     className <- Names.innerClass funName
     return $ irule className mcx
   where
-    irule className mcx' = IRule () mtvs Nothing mcx' (ihead className types)
+    irule className mcx' = IRule () mtvs mcx' (ihead className types)
     ihead className [] = IHApp () (IHCon () (UnQual () className)) (TyCon () pieceName)
     ihead className (t:ts) = IHApp () (ihead className ts) t
 
@@ -113,7 +112,7 @@ outerInstance innerCName outerCName innerFName outerFName classVars = InstDecl (
   where
     coprodvar = TyVar () (name "g")
     tyvars = map (TyVar ()) classVars
-    instRule = IRule () Nothing Nothing (Just (CxSingle () assertion)) instHead
+    instRule = IRule () Nothing (Just (CxSingle () assertion)) instHead
     instHead = foldl (IHApp ()) (IHCon () (UnQual () outerCName)) (TyParen () (termApp coprodvar) : tyvars)
     assertion = TypeA () (foldl (TyApp ()) (TyCon () (UnQual () innerCName)) (coprodvar : tyvars))
     instDecl = InsDecl () (FunBind () [Match () outerFName [] (UnGuardedRhs () funExp) Nothing])

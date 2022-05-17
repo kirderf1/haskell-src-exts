@@ -13,16 +13,20 @@ data B composable_types_recursive_var = B Int
 
 composable_types_constructor_B ::
                                  ComposableTypes.PartOf B g => Int -> g
-composable_types_constructor_B arg_1 = ComposableTypes.inject' (B arg_1)
+composable_types_constructor_B arg_1
+  = ComposableTypes.inject' (B arg_1)
 
 data C composable_types_recursive_var = C
 
 composable_types_constructor_C :: ComposableTypes.PartOf C g => g
 composable_types_constructor_C = ComposableTypes.inject' C
 
-d :: (ComposableTypes.PartOf B a, ComposableTypes.PartOf C a) => 
-  a -> Int
-d composable_types_var = d' (Data.Comp.project composable_types_var) (Data.Comp.project composable_types_var)
+d ::
+    (ComposableTypes.PartOf B a, ComposableTypes.PartOf C a) => 
+    a -> Int
+d composable_types_var
+  = d' (ComposableTypes.project' composable_types_var)
+      (ComposableTypes.project' composable_types_var)
 
 d' :: (ComposableTypes.PartOf B a, ComposableTypes.PartOf C a) => 
   Maybe (B a) -> Maybe (C a) -> Int

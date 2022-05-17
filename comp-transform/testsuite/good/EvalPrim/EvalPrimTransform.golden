@@ -29,6 +29,5 @@ instance Composable_types_inner_class_eval g =>
          where
         eval = composable_types_class_function_eval . Data.Comp.unTerm
 
-eval2 ::
-        Composable_types_inner_class_eval a => Data.Comp.Term a -> String
+eval2 :: (Composable_types_outer_class_eval a) => a -> String
 eval2 a = eval a False

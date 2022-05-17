@@ -14,9 +14,8 @@ import Control.Applicative (Alternative, empty)
 
 data B composable_types_recursive_var = C
 
-composable_types_constructor_C ::
-                                 B Data.Comp.:<: g => Data.Comp.Term g
-composable_types_constructor_C = Data.Comp.inject C
+composable_types_constructor_C :: ComposableTypes.PartOf B g => g
+composable_types_constructor_C = ComposableTypes.inject' C
 
 class Composable_types_inner_class_d f e where
         composable_types_class_function_d ::

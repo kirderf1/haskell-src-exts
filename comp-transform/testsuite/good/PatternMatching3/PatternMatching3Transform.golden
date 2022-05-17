@@ -14,14 +14,13 @@ import qualified ComposableTypes
 data B composable_types_recursive_var = B Int
 
 composable_types_constructor_B ::
-                                 B Data.Comp.:<: g => Int -> Data.Comp.Term g
-composable_types_constructor_B arg_1 = Data.Comp.inject (B arg_1)
+                                 ComposableTypes.PartOf B g => Int -> g
+composable_types_constructor_B arg_1 = ComposableTypes.inject' (B arg_1)
 
 data C composable_types_recursive_var = C
 
-composable_types_constructor_C ::
-                                 C Data.Comp.:<: g => Data.Comp.Term g
-composable_types_constructor_C = Data.Comp.inject C
+composable_types_constructor_C :: ComposableTypes.PartOf C g => g
+composable_types_constructor_C = ComposableTypes.inject' C
 
 d :: B Data.Comp.:<: a => Data.Comp.Term a -> Int
 d composable_types_var = d' (Data.Comp.project composable_types_var)

@@ -1,1 +1,0 @@
-ParseFailed (SrcLoc "comp-transform/testsuite/progress/NoPragma/NoPragma.hs" 3 1) "ComposableTypes language extension is not enabled. Please add {-# LANGUAGE ComposableTypes #-} pragma at the top of your module."

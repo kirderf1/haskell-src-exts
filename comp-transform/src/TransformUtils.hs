@@ -59,52 +59,20 @@ deriveTH targetName list = SpliceDecl ()
 deriveTHListElem :: String -> Exp ()
 deriveTHListElem nam = qvar (ModuleName () "Data.Comp.Derive") (name nam)
 
--- | Change a type variable to be a term
--- exchangeToTerm :: [Name ()] -> Type () -> Transform (Type ())
--- exchangeToTerm vars v@(TyVar _ vname) | vname `elem` vars = return $ termApp v
--- exchangeToTerm _ t = return t
-
-
--- | Transform compcontext into regular context
-transformCompContext :: CompContext () -> Maybe (Context ()) -> Transform (Maybe (Context ()), [Name ()])
-transformCompContext (CompCxEmpty _) mcx = addToContext [] mcx
-transformCompContext (CompCxSingle _ constraint) mcx = addToContext [constraint] mcx
-transformCompContext (CompCxTuple _ constraints) mcx = addToContext constraints mcx
-
--- | Add constraints to context instead
-addToContext :: [Constraint ()] -> Maybe (Context ()) -> Transform (Maybe (Context ()), [Name ()])
-addToContext cs Nothing =  addToContext' cs []
-addToContext cs (Just (CxEmpty _)) = addToContext' cs []
-addToContext cs (Just (CxSingle _ asst)) =  addToContext' cs [asst]
-addToContext cs (Just (CxTuple _ assts)) =  addToContext' cs assts
-
--- | Add constraints to assertions in a context
-addToContext' :: [Constraint ()] -> [Asst ()] -> Transform (Maybe (Context ()), [Name ()])
-addToContext' cs assts = do
-    (assts', vars) <- addToAssts cs assts   
-    return $ (Just (contextFromList assts'), vars)
-
 -- | Create context from list of assertions
 contextFromList :: [Asst ()] -> Context ()
 contextFromList [] = CxEmpty ()
 contextFromList [a] = CxSingle () a
 contextFromList as = CxTuple () as
 
--- | Add constraints to list of assertions
-addToAssts :: [Constraint ()] -> [Asst ()] -> Transform ([Asst ()], [Name ()])
-addToAssts cs as = do 
-    asstvars <- mapM constraintToAsst cs
-    let (csAssts, vars) = unzip asstvars
-    return $ (catMaybes csAssts ++ as, vars)
-
 -- | Transform constraint to assertion
-constraintToAsst :: Constraint () -> Transform (Maybe (Asst ()), Name ())
+constraintToAsst :: Constraint () -> Transform (Maybe (Asst ()))
 constraintToAsst (FunConstraint _ fun v) = do
     cname <- Names.qOuterClass fun
-    return (Just (TypeA () (TyApp () (TyCon () cname) (TyVar () v))), v) 
+    return (Just (TypeA () (TyApp () (TyCon () cname) (TyVar () v)))) 
 constraintToAsst (PieceConstraint _ piece v) = return (Just (TypeA () (TyApp () 
-    (TyApp () (TyCon () partOfName)  (TyCon () piece)) (TyVar () v))), v)
-constraintToAsst (CategoryConstraint _ _category v) = return (Nothing, v)
+    (TyApp () (TyCon () partOfName)  (TyCon () piece)) (TyVar () v))))
+constraintToAsst (CategoryConstraint _ _category _v) = return (Nothing)
 
 
 transformContext :: Context () -> Transform (Context ())
@@ -114,13 +82,14 @@ transformContext (CxTuple _ assts) = transformContext' assts
 
 transformContext' :: [Asst ()] -> Transform (Context ())
 transformContext' assts = do
-    asstvars <- mapM transformAsst assts 
-    let (assts', _vars) = unzip asstvars
+    assts' <- mapM transformAsst assts 
     return (contextFromList (catMaybes assts'))
 
-transformAsst :: Asst () -> Transform (Maybe (Asst ()), Maybe (Name ()))
-transformAsst (CompCont _ constraint) = do
-    (masst, v) <- constraintToAsst constraint
-    return (masst, (Just v))
-transformAsst (ParenA _ asst) = transformAsst asst
-transformAsst asst = return (Just asst, Nothing) 
+transformAsst :: Asst () -> Transform (Maybe (Asst ()))
+transformAsst (CompCont _ constraint) = constraintToAsst constraint
+transformAsst (ParenA _ asst) = do 
+    masst' <- transformAsst asst
+    case masst' of
+         Just asst' -> return (Just (ParenA () asst'))
+         Nothing -> return Nothing
+transformAsst asst = return (Just asst) 

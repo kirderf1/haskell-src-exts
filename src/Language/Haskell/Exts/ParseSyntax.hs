@@ -301,7 +301,6 @@ instance Annotated PContext where
 data PType l
      = TyForall l
         (Maybe [TyVarBind l])
-        (Maybe (CompContext l))
         (Maybe (PContext l))
         (PType l)
      | TyStar  l                                -- ^ @*@, the type of types
@@ -329,7 +328,7 @@ data PType l
 
 instance Annotated PType where
     ann t = case t of
-      TyForall l _ _ _ _            -> l
+      TyForall l _ _ _              -> l
       TyStar  l                     -> l
       TyFun   l _ _                 -> l
       TyTuple l _ _                 -> l
@@ -352,7 +351,7 @@ instance Annotated PType where
       TyComp l _ _                  -> l
       TyCompCont l _                -> l
     amap f t' = case t' of
-      TyForall l mtvs mcs mcx t     -> TyForall (f l) mtvs mcs mcx t
+      TyForall l mtvs mcx t         -> TyForall (f l) mtvs mcx t
       TyStar  l                     -> TyStar (f l)
       TyFun   l t1 t2               -> TyFun (f l) t1 t2
       TyTuple l b ts                -> TyTuple (f l) b ts

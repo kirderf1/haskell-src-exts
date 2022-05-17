@@ -921,8 +921,8 @@ instance ExactP Decl where
         _ -> errorEP "ExactP: Decl: CompletePragma is given wrong number of srcInfoPoints"
     PieceDecl _l _ca _dh _constrs _mder -> undefined
     PieceCatDecl _l _ca -> undefined
-    CompFunDecl _l _ns _mtvs _mccx _mcx _ca _t -> undefined
-    CompFunExt _l _mtvs _mccx _mcx _fn _types _pn _mids -> undefined
+    CompFunDecl _l _ns _mcx _ca _t -> undefined
+    CompFunExt _l _mcx _fn _types _pn _mids -> undefined
  
 
 
@@ -999,7 +999,7 @@ instance ExactP DeclHead where
 
 instance ExactP InstRule where
   exactP ih' = case ih' of
-    IRule l mtvs mccx mctxt qn    -> do
+    IRule l mtvs mctxt qn    -> do
         let pts = srcInfoPoints l
         _ <- case mtvs of
                 Nothing -> return pts
@@ -1011,7 +1011,6 @@ instance ExactP InstRule where
                         printStringAt (pos b) "."
                         return pts
                      _ -> errorEP "ExactP: InstRule: IRule is given too few srcInfoPoints"
-        maybeEP exactPC mccx
         maybeEP exactPC mctxt
         exactPC qn
     IParen l ih        ->
@@ -1050,7 +1049,7 @@ instance ExactP TyVarBind where
 
 instance ExactP Type where
   exactP t' = case t' of
-    TyForall l mtvs mccx mctxt t -> do
+    TyForall l mtvs mctxt t -> do
         let pts = srcInfoPoints l
         _ <- case mtvs of
                 Nothing -> return pts
@@ -1062,7 +1061,6 @@ instance ExactP Type where
                         printStringAt (pos b) "."
                         return pts'
                      _ -> errorEP "ExactP: Type: TyForall is given too few srcInfoPoints"
-        maybeEP exactPC mccx
         maybeEP exactPC mctxt
         exactPC t
     TyStar  _ -> printString "*"
@@ -1127,9 +1125,6 @@ instance ExactP Type where
         sequence_ (intersperse newLine $ map printString qtLines)
         printString "|]"
     TyComp _l _cat _pieces -> undefined
-        
-instance ExactP CompContext where
-    exactP _ = errorEP "ExactP: Instance not written for CompContext"
     
 instance ExactP Constraint where 
     exactP _ = errorEP "ExactP: Instance not written for Constraint"

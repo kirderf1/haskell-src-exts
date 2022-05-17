@@ -66,7 +66,7 @@ module Language.Haskell.Exts.Syntax (
     Context(..), FunDep(..), Asst(..),
     -- * Types
     Type(..), Boxed(..), Kind, TyVarBind(..), Promoted(..),
-    CompContext(..), Constraint(..),
+    Constraint(..),
     TypeEqn (..),
     -- * Expressions
     Exp(..), Stmt(..), QualStmt(..), FieldUpdate(..),
@@ -344,8 +344,8 @@ data Decl l
      -- ^ A COMPLETE pragma
      | PieceCatDecl l (Name l)
      | PieceDecl    l (QName l) (Name l) [QualConDecl l] [Deriving l]
-     | CompFunDecl  l [Name l] (Maybe [TyVarBind l]) (Maybe (CompContext l)) (Maybe (Context l)) (QName l) (Type l)
-     | CompFunExt   l (Maybe [TyVarBind l]) (Maybe (CompContext l)) (Maybe (Context l)) (Name l) [Type l] (QName l) (Maybe [InstDecl l])
+     | CompFunDecl  l [Name l] (Maybe (Context l)) (QName l) (Type l)
+     | CompFunExt   l (Maybe (Context l)) (Name l) [Type l] (QName l) (Maybe [InstDecl l])
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
 data  PatternSynDirection l =
@@ -455,7 +455,7 @@ data DeclHead l
 -- >   (Just [ UnkindedVar () (Ident () "a") ])
 -- >   ...
 data InstRule l
-    = IRule l (Maybe [TyVarBind l]) (Maybe (CompContext l)) (Maybe (Context l)) (InstHead l)
+    = IRule l (Maybe [TyVarBind l]) (Maybe (Context l)) (InstHead l)
     | IParen l (InstRule l)
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
@@ -634,7 +634,6 @@ data GuardedRhs l
 data Type l
      = TyForall l
         (Maybe [TyVarBind l])
-        (Maybe (CompContext l))
         (Maybe (Context l))
         (Type l)                                -- ^ qualified type
      | TyStar  l                                -- ^ @*@, the type of types
@@ -658,13 +657,7 @@ data Type l
      | TyQuasiQuote l String String             -- ^ @[$/name/| /string/ |]@
      | TyComp l (QName l) [QName l]             -- ^ Type  composition, e.g. C ==> (A, B)
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
-
-data CompContext l
-    = CompCxSingle l (Constraint l)
-    | CompCxTuple  l [Constraint l]
-    | CompCxEmpty  l
-  deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
-    
+  
 data Constraint l
     = FunConstraint l (QName l) (Name l)        -- ^ Function constraint, e.g. f for a
     | PieceConstraint l (QName l) (Name l)      -- ^ Piece constraint, e.g. A in a
@@ -1332,8 +1325,8 @@ instance Annotated Decl where
         CompletePragma l _ _            -> l
         PieceCatDecl   l _              -> l
         PieceDecl      l _ _ _ _        -> l
-        CompFunDecl    l _ _ _ _ _ _    -> l
-        CompFunExt     l _ _ _ _ _ _ _  -> l
+        CompFunDecl    l _ _ _ _        -> l
+        CompFunExt     l _ _ _ _ _      -> l
     amap f decl = case decl of
         TypeDecl     l dh t      -> TypeDecl    (f l) dh t
         TypeFamDecl  l dh mk mi  -> TypeFamDecl (f l) dh mk mi
@@ -1374,8 +1367,8 @@ instance Annotated Decl where
         CompletePragma   l cs ty         -> CompletePragma (f l) cs ty
         PieceCatDecl l ca                -> PieceCatDecl (f l) ca
         PieceDecl    l ca dh cds ders    -> PieceDecl (f l) ca dh cds ders
-        CompFunDecl  l ns mtvs mccx mcx ca t      -> CompFunDecl (f l) ns mtvs mccx mcx ca t
-        CompFunExt   l mtvs mccx mcx fn ts pn ins -> CompFunExt (f l) mtvs mccx mcx fn ts pn ins
+        CompFunDecl  l ns mcx ca t       -> CompFunDecl (f l) ns mcx ca t
+        CompFunExt   l mcx fn ts pn ins  -> CompFunExt (f l) mcx fn ts pn ins
 
 instance Annotated Role where
     ann r = case r of
@@ -1423,9 +1416,9 @@ instance Annotated DeclHead where
     amap f (DHApp l dh t)        = DHApp (f l) dh t
 
 instance Annotated InstRule where
-    ann (IRule l _ _ _ _)            = l
+    ann (IRule l _ _ _)              = l
     ann (IParen l _)                 = l
-    amap f (IRule l mtv mccx cxt qn) = IRule (f l) mtv mccx cxt qn
+    amap f (IRule l mtv cxt qn)      = IRule (f l) mtv cxt qn
     amap f (IParen l ih)             = IParen (f l) ih
 
 instance Annotated InstHead where
@@ -1530,7 +1523,7 @@ instance Annotated GuardedRhs where
 
 instance Annotated Type where
     ann t = case t of
-      TyForall l _ _ _ _            -> l
+      TyForall l _ _ _              -> l
       TyStar  l                     -> l
       TyFun   l _ _                 -> l
       TyTuple l _ _                 -> l
@@ -1551,7 +1544,7 @@ instance Annotated Type where
       TyQuasiQuote l _ _            -> l
       TyComp l _ _                  -> l
     amap f t1 = case t1 of
-      TyForall l mtvs mcs mcx t     -> TyForall (f l) mtvs mcs mcx t
+      TyForall l mtvs mcx t         -> TyForall (f l) mtvs mcx t
       TyStar  l                     -> TyStar (f l)
       TyFun   l t1' t2              -> TyFun (f l) t1' t2
       TyTuple l b ts                -> TyTuple (f l) b ts
@@ -1571,16 +1564,6 @@ instance Annotated Type where
       TyWildCard l n                -> TyWildCard (f l) n
       TyQuasiQuote l n s            -> TyQuasiQuote (f l) n s
       TyComp l c t                  -> TyComp (f l) c t
-
-instance Annotated CompContext where
-    ann c = case c of 
-      CompCxSingle l _              -> l
-      CompCxTuple l _               -> l
-      CompCxEmpty l                 -> l
-    amap f c = case c of
-      CompCxSingle l cn             -> CompCxSingle (f l) cn
-      CompCxTuple l cn              -> CompCxTuple (f l) cn
-      CompCxEmpty l                 -> CompCxEmpty (f l)
       
 instance Annotated Constraint where
     ann c = case c of

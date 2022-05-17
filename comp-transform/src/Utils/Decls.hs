@@ -57,8 +57,8 @@ mapDecl' f decl = f =<< case decl of
         CompletePragma   l cs ty         -> return $ CompletePragma l cs ty
         PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh <$> (mapDecl f `mapM` cds) <*> (mapDecl f `mapM` ders)
         PieceCatDecl l ca                -> return $ PieceCatDecl l ca
-        CompFunDecl  l ns mtv mccx mcx ca t      -> CompFunDecl l ns <$> ((mapDecl f `mapM`) `mapM` mtv) <*> return mccx <*> (mapDecl f `mapM` mcx) <*> return ca <*> mapDecl f t
-        CompFunExt   l mtv mccx mcx fn ts pn ids -> CompFunExt l <$> ((mapDecl f `mapM`) `mapM` mtv) <*> return mccx <*> (mapDecl f `mapM` mcx) <*> return fn <*> mapDecl f `mapM` ts <*> return pn <*> ((mapDecl f `mapM`) `mapM` ids)
+        CompFunDecl  l ns mcx ca t       -> CompFunDecl l ns <$> (mapDecl f `mapM` mcx) <*> return ca <*> mapDecl f t
+        CompFunExt   l mcx fn ts pn ids  -> CompFunExt l <$> (mapDecl f `mapM` mcx) <*> return fn <*> mapDecl f `mapM` ts <*> return pn <*> ((mapDecl f `mapM`) `mapM` ids)
 
 
 mapDecls :: (MonadError String m) => (Decl l -> m [Decl l]) -> [Decl l] -> m [Decl l]
@@ -88,8 +88,8 @@ instance DeclMap DeclHead where
     mapDecl f (DHApp l dh t)        = DHApp l <$> mapDecl f dh <*> mapDecl f t
 
 instance DeclMap InstRule where
-    mapDecl f (IRule l mtv mccx cxt qn) = IRule l <$> ((mapDecl f `mapM`) `mapM` mtv) <*> return mccx <*> (mapDecl f `mapM` cxt) <*> mapDecl f qn
-    mapDecl f (IParen l ih)             = IParen l <$> mapDecl f ih
+    mapDecl f (IRule l mtv cxt qn)  = IRule l <$> ((mapDecl f `mapM`) `mapM` mtv) <*> (mapDecl f `mapM` cxt) <*> mapDecl f qn
+    mapDecl f (IParen l ih)         = IParen l <$> mapDecl f ih
 
 instance DeclMap InstHead where
     mapDecl _ (IHCon l n)           = return $ IHCon l n
@@ -162,7 +162,7 @@ instance DeclMap GuardedRhs where
 
 instance DeclMap Type where
     mapDecl f t1 = case t1 of
-          TyForall l mtvs mccx mcx t    -> TyForall l <$> ((mapDecl f `mapM`) `mapM` mtvs) <*> return mccx <*> (mapDecl f `mapM` mcx) <*> mapDecl f t
+          TyForall l mtvs mcx t         -> TyForall l <$> ((mapDecl f `mapM`) `mapM` mtvs) <*> (mapDecl f `mapM` mcx) <*> mapDecl f t
           TyStar  l                     -> return $ TyStar l
           TyFun   l t1' t2              -> TyFun l <$> mapDecl f t1' <*> mapDecl f t2
           TyTuple l b ts                -> TyTuple l b <$> (mapDecl f `mapM` ts)

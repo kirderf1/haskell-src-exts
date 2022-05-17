@@ -305,7 +305,7 @@ checkAsst asst =
 
 
 checkDataHeader :: PType L -> P (Maybe (S.Context L), DeclHead L)
-checkDataHeader (TyForall _ Nothing Nothing cs t) = do
+checkDataHeader (TyForall _ Nothing cs t) = do
     dh <- checkSimple "data/newtype" t
     cs' <- checkContext cs
     return (cs',dh)
@@ -314,7 +314,7 @@ checkDataHeader t = do
     return (Nothing,dh)
 
 checkClassHeader :: PType L -> P (Maybe (S.Context L), DeclHead L)
-checkClassHeader (TyForall _ Nothing Nothing cs t) = do
+checkClassHeader (TyForall _ Nothing cs t) = do
     checkMultiParam t
     dh <- checkSimple "class" t
     cs' <- checkSContext cs
@@ -326,7 +326,7 @@ checkClassHeader t = do
 
 -- for Composable types pieces
 checkPieceHeader :: PType L -> P (Maybe (S.Context L), DeclHead L)
-checkPieceHeader (TyForall _ Nothing Nothing cs t) = do
+checkPieceHeader (TyForall _ Nothing cs t) = do
     dh <- checkSimple "piece" t
     cs' <- checkContext cs
     return (cs',dh)
@@ -377,18 +377,18 @@ toTyVarBind (TyKind l (TyVar _ n) k) = KindedVar l n k
 
 checkInstHeader :: PType L -> P (InstRule L)
 checkInstHeader (TyParen l t) = checkInstHeader t >>= return . IParen l
-checkInstHeader (TyForall l mtvs mccx cs t) = do
+checkInstHeader (TyForall l mtvs cs t) = do
     cs' <- checkSContext cs
     checkMultiParam t
-    checkInsts (Just l) mtvs mccx cs' t
-checkInstHeader t = checkMultiParam t >> checkInsts Nothing Nothing Nothing Nothing t
+    checkInsts (Just l) mtvs cs' t
+checkInstHeader t = checkMultiParam t >> checkInsts Nothing Nothing Nothing t
 
 
-checkInsts :: Maybe L -> Maybe [TyVarBind L] -> Maybe (CompContext L) -> Maybe (S.Context L) -> PType L -> P (InstRule L)
-checkInsts _ mtvs mccx mctxt (TyParen l t) = checkInsts Nothing mtvs mccx mctxt t >>= return . IParen l
-checkInsts l1 mtvs mccx mctxt t = do
+checkInsts :: Maybe L -> Maybe [TyVarBind L] -> Maybe (S.Context L) -> PType L -> P (InstRule L)
+checkInsts _ mtvs mctxt (TyParen l t) = checkInsts Nothing mtvs mctxt t >>= return . IParen l
+checkInsts l1 mtvs mctxt t = do
     t' <- checkInstsGuts t
-    return $ IRule (fromMaybe (fmap ann mccx <?+> (fmap ann mctxt <?+> ann t')) l1) mtvs mccx mctxt t'
+    return $ IRule (fromMaybe (fmap ann mctxt <?+> ann t') l1) mtvs mctxt t'
 
 checkInstsGuts :: PType L -> P (InstHead L)
 checkInstsGuts (TyApp l h t) = do
@@ -406,7 +406,7 @@ checkInstsGuts (TyParen l t) = checkInstsGuts t >>= return . IHParen l
 checkInstsGuts _ = fail "Illegal instance declaration"
 
 checkDeriving :: [PType L] -> P [InstRule L]
-checkDeriving = mapM (checkInsts Nothing Nothing Nothing Nothing)
+checkDeriving = mapM (checkInsts Nothing Nothing Nothing)
 
 -----------------------------------------------------------------------------
 -- Checking Patterns.
@@ -1101,14 +1101,14 @@ checkType t = checkT t False
 
 checkT :: PType L -> Bool -> P (S.Type L)
 checkT t simple = case t of
-    TyForall l Nothing ccx cs pt    -> do
+    TyForall l Nothing cs pt    -> do
             when simple $ checkEnabled ExplicitForAll
             ctxt <- checkContext cs
-            check1Type pt (S.TyForall l Nothing ccx ctxt)         
-    TyForall l tvs ccx cs pt -> do
+            check1Type pt (S.TyForall l Nothing ctxt)         
+    TyForall l tvs cs pt -> do
             checkEnabled ExplicitForAll
             ctxt <- checkContext cs
-            check1Type pt (S.TyForall l tvs ccx ctxt)
+            check1Type pt (S.TyForall l tvs ctxt)
     TyStar  l         -> return $ S.TyStar l
     TyFun   l at rt   -> check2Types at rt (S.TyFun l)
     TyTuple l b pts   -> checkTypes pts >>= return . S.TyTuple l b
@@ -1217,12 +1217,11 @@ mkDVar = intercalate "-"
 -- Combine adjacent for-alls.
 --
 -- A valid type must have one for-all at the top of the type, or of the fn arg types
-mkTyForall :: L -> Maybe [TyVarBind L] -> Maybe (CompContext L) -> Maybe (PContext L) -> PType L -> PType L
-mkTyForall l mtvs mccx ctxt ty =
-    case (mccx, ctxt, ty) of
-        (Nothing, Nothing, TyForall _ Nothing mccx2 ctxt2 ty2) -> TyForall l mtvs mccx2 ctxt2 ty2
-        (_, Nothing, TyForall _ Nothing Nothing ctxt2 ty2) -> TyForall l mtvs mccx ctxt2 ty2
-        _                                               -> TyForall l mtvs mccx ctxt ty
+mkTyForall :: L -> Maybe [TyVarBind L] -> Maybe (PContext L) -> PType L -> PType L
+mkTyForall l mtvs ctxt ty =
+    case (ctxt, ty) of
+        (Nothing, TyForall _ Nothing ctxt2 ty2) -> TyForall l mtvs ctxt2 ty2
+        _                                               -> TyForall l mtvs ctxt ty
 
 -- Make a role annotation
 
@@ -1334,33 +1333,37 @@ mkSumOrTuple Boxed _s (SSum {}) = fail "Boxed sums are not implemented"
 ----------------------------------------------
 -- | Composable types 
 
-checkCompFunExt :: PType L -> P (Maybe [TyVarBind L], Maybe (CompContext L), Maybe (S.Context L), Name L)
-checkCompFunExt (TyForall l mtvs mccx mcx t) = do
-    mcx' <- checkSContext mcx
-    checkCompFunExt' (Just l) mtvs mccx mcx' t
-checkCompFunExt t = checkCompFunExt' Nothing Nothing Nothing Nothing t
+checkCompFunExt :: PType L -> P (Maybe (S.Context L), Name L)
+checkCompFunExt (TyForall l mtvs mcx t) = do
+    case mtvs of
+         Just _ -> fail "Illegal forall in extensible function extension"
+         Nothing -> do
+            mcx' <- checkSContext mcx
+            checkCompFunExt' (Just l) mcx' t
+checkCompFunExt t = checkCompFunExt' Nothing Nothing t
 
-checkCompFunExt' :: Maybe L -> Maybe [TyVarBind L] -> Maybe (CompContext L) -> Maybe (S.Context L) -> PType L -> P (Maybe [TyVarBind L], Maybe (CompContext L), Maybe (S.Context L), Name L) 
-checkCompFunExt' _l mtvs mccx mcx t = do
+checkCompFunExt' :: Maybe L -> Maybe (S.Context L) -> PType L -> P (Maybe (S.Context L), Name L) 
+checkCompFunExt' _l mcx t = do
     t' <- checkCompFunExtType t
-    return $ (mtvs, mccx, mcx, t')
+    return $ (mcx, t')
 
 checkCompFunExtType :: PType L -> P (Name L)
 checkCompFunExtType (TyVar _l n) = return n
 checkCompFunExtType _ = fail "Illegal composable function extension declaration"
 
+checkCompFunDecl :: PType L -> P (Maybe (S.Context L), QName L, S.Type L)
+checkCompFunDecl (TyForall l mtvs mcx t) = do
+    case mtvs of
+         Just _ -> fail "Illegal forall in extensible function declaration"
+         Nothing -> do
+            mcx' <- checkSContext mcx
+            checkCompFunDecl' (Just l) mcx' t
+checkCompFunDecl t = checkCompFunDecl' Nothing Nothing t
 
-
-checkCompFunDecl :: PType L -> P (Maybe [TyVarBind L], Maybe (CompContext L), Maybe (S.Context L), QName L, S.Type L)
-checkCompFunDecl (TyForall l mtvs mccx mcx t) = do
-    mcx' <- checkSContext mcx
-    checkCompFunDecl' (Just l) mtvs mccx mcx' t
-checkCompFunDecl t = checkCompFunDecl' Nothing Nothing Nothing Nothing t
-
-checkCompFunDecl' :: Maybe L -> Maybe [TyVarBind L] -> Maybe (CompContext L) -> Maybe (S.Context L) -> PType L -> P (Maybe [TyVarBind L], Maybe (CompContext L), Maybe (S.Context L), QName L, S.Type L) 
-checkCompFunDecl' _l mtvs mccx mcx t = do
+checkCompFunDecl' :: Maybe L -> Maybe (S.Context L) -> PType L -> P (Maybe (S.Context L), QName L, S.Type L) 
+checkCompFunDecl' _l mcx t = do
     (qn, t') <- checkCompFunDeclType t
-    return $ (mtvs, mccx, mcx, qn, t')
+    return $ (mcx, qn, t')
 
 checkCompFunDeclType :: PType L -> P ((QName L, S.Type L))
 checkCompFunDeclType (TyFun _ (TyCon _ qn) t)  = do 

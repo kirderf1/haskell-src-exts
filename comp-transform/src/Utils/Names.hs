@@ -19,7 +19,7 @@ class WithVar a where
 
 instance WithVar Type where
     collectVars t1 = case t1 of
-          TyForall _ mtvs mccx mcx t    -> concatMap (concatMap collectVars) mtvs ++ concatMap collectVars mccx 
+          TyForall _ mtvs      mcx t    -> concatMap (concatMap collectVars) mtvs 
                                             ++ concatMap collectVars mcx ++ collectVars t
           TyStar  _                     -> []
           TyFun   _ t1' t2              -> collectVars t1' ++ collectVars t2
@@ -57,11 +57,6 @@ instance WithVar Asst where
         IParam _ ipn t      -> undefined
         ParenA _ a          -> collectVars a
         CompCont _ c        -> []
-
-instance WithVar CompContext where
-    collectVars (CompCxSingle _ c ) = collectVars c
-    collectVars (CompCxTuple  _ cs) = concatMap collectVars cs
-    collectVars (CompCxEmpty _) = []
     
 instance WithVar Constraint where
     collectVars _ = undefined

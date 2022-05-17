@@ -56,8 +56,8 @@ instance TypeMap Decl where
             CompletePragma   l cs ty         -> return $ CompletePragma l cs ty
             PieceDecl   l ca dh cds ders     -> PieceDecl l ca dh <$> (mapType f `mapM` cds) <*> (mapType f `mapM` ders)
             PieceCatDecl l ca                -> return $ PieceCatDecl l ca
-            CompFunDecl  l ns mtv mccx mcx ca t      -> CompFunDecl l ns <$> ((mapType f `mapM`) `mapM` mtv) <*> return mccx <*> (mapType f `mapM` mcx) <*> return ca <*> mapType f t
-            CompFunExt   l mtv mccx mcx fn ts pn ids -> CompFunExt l <$> ((mapType f `mapM`) `mapM` mtv) <*> return mccx <*> (mapType f `mapM` mcx) <*> return fn <*> mapType f `mapM` ts <*> return pn <*> ((mapType f `mapM`) `mapM` ids)
+            CompFunDecl  l ns mcx ca t       -> CompFunDecl l ns <$> (mapType f `mapM` mcx) <*> return ca <*> mapType f t
+            CompFunExt   l mcx fn ts pn ids  -> CompFunExt l <$> (mapType f `mapM` mcx) <*> return fn <*> mapType f `mapM` ts <*> return pn <*> ((mapType f `mapM`) `mapM` ids)
             
 
 instance TypeMap PatternSynDirection where
@@ -84,8 +84,8 @@ instance TypeMap DeclHead where
     mapType f (DHApp l dh t)        = DHApp l <$> mapType f dh <*> mapType f t
 
 instance TypeMap InstRule where
-    mapType f (IRule l mtv mccx cxt qn) = IRule l <$> ((mapType f `mapM`) `mapM` mtv) <*> return mccx <*> (mapType f `mapM` cxt) <*> mapType f qn
-    mapType f (IParen l ih)             = IParen l <$> mapType f ih
+    mapType f (IRule l mtv cxt qn)  = IRule l <$> ((mapType f `mapM`) `mapM` mtv) <*> (mapType f `mapM` cxt) <*> mapType f qn
+    mapType f (IParen l ih)         = IParen l <$> mapType f ih
 
 instance TypeMap InstHead where
     mapType _ (IHCon l n)           = return $ IHCon l n
@@ -150,7 +150,7 @@ instance TypeMap GuardedRhs where
 
 instance TypeMap Type where
     mapType f t1 = f =<< case t1 of
-          TyForall l mtvs mccx mcx t    -> TyForall l <$> ((mapType f `mapM`) `mapM` mtvs) <*> return mccx <*> (mapType f `mapM` mcx) <*> mapType f t
+          TyForall l mtvs mcx t         -> TyForall l <$> ((mapType f `mapM`) `mapM` mtvs) <*> (mapType f `mapM` mcx) <*> mapType f t
           TyStar  l                     -> return $ TyStar l
           TyFun   l t1' t2              -> TyFun l <$> mapType f t1' <*> mapType f t2
           TyTuple l b ts                -> TyTuple l b <$> (mapType f `mapM` ts)

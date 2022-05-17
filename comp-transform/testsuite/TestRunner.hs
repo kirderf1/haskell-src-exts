@@ -7,21 +7,43 @@ import Test.Tasty.Golden
 import Test.Tasty
 import Control.Monad.Except
 import System.FilePath
-import System.Directory (doesDirectoryExist, createDirectoryIfMissing, listDirectory, removeDirectoryRecursive)
+import System.Directory
 import System.Process     (readProcessWithExitCode)
 import System.Exit
 
 
 main :: IO ()
 main = do
+    clean `mapM_` groups
     transformTests <- createTransformTree `mapM` groups
     compileTests <- createCompileTree `mapM` ["good"]
     defaultMain $ testGroup "Tests" 
         [(testGroup "Transform tests") transformTests, 
          (testGroup "Compile tests") compileTests]          
-            
-      
- 
+
+
+clean :: FilePath -> IO ()
+clean group = (cleanTest `mapM_`) =<< testDirs
+  where
+    mainDir = testsuite </> group
+    testDirs :: IO [FilePath]
+    testDirs = do
+        exists <- doesDirectoryExist mainDir
+        if exists
+          then getDirectories mainDir
+          else return []
+    cleanTest :: FilePath -> IO ()
+    cleanTest dir = do
+        files <- (filter isOutFile) <$> getFiles dir
+        mapM_ removeFile files
+        isEmpty <- (0 ==) . length <$> listDirectory dir
+        if isEmpty
+          then removeDirectory dir
+          else return ()
+    isOutFile path = takeExtension path == ".out"
+        
+    
+
 type TestSuite = ([FilePath], [FilePath], [FilePath])
 
 lib :: FilePath
@@ -39,8 +61,9 @@ getTestFiles mainDir = do
     if exists
       then do
         dirs <- getDirectories mainDir
-        return $ map (\dir -> dir </> takeBaseName dir <.> "hs") dirs
+        filterM doesFileExist $ map toTestFile dirs
       else return []
+  where toTestFile dir = dir </> takeBaseName dir <.> "hs"
 
 createTransformTree :: FilePath -> IO (TestTree)
 createTransformTree group = testGolden group "Transform" runTransformTest <$> getTestFiles (testsuite </> group)
@@ -88,8 +111,12 @@ writeFileAndCreateDirectory file text = do
     createDirectoryIfMissing True $ takeDirectory file
     writeBinaryFile file text
 
-    
+getFiles :: FilePath -> IO [FilePath]
+getFiles directory = listDirectory directory
+                      >>= return . map (directory </>)
+                      >>= filterM doesFileExist
+
 getDirectories :: FilePath -> IO [FilePath]
-getDirectories filePath = listDirectory filePath
-                      >>= return . map (filePath </>)
+getDirectories directory = listDirectory directory
+                      >>= return . map (directory </>)
                       >>= filterM doesDirectoryExist

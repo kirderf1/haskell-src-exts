@@ -11,5 +11,5 @@ import qualified Data.Comp.Show ()
 import qualified Data.Comp.Equality ()
 import qualified ComposableTypes
 
-d :: () => Data.Comp.Term a -> Data.Comp.Term a
+d :: () => a -> a
 d a = a

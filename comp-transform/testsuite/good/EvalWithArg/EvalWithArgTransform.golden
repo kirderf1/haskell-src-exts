@@ -15,12 +15,14 @@ data B composable_types_recursive_var = C Int
                                       | D composable_types_recursive_var
 
 composable_types_constructor_C ::
-                                 B Data.Comp.:<: g => Int -> Data.Comp.Term g
-composable_types_constructor_C arg_1 = Data.Comp.inject (C arg_1)
+                                 ComposableTypes.PartOf B g => Int -> g
+composable_types_constructor_C arg_1
+  = ComposableTypes.inject' (C arg_1)
 
 composable_types_constructor_D ::
-                                 B Data.Comp.:<: g => Data.Comp.Term g -> Data.Comp.Term g
-composable_types_constructor_D arg_1 = Data.Comp.inject (D arg_1)
+                                 ComposableTypes.PartOf B g => g -> g
+composable_types_constructor_D arg_1
+  = ComposableTypes.inject' (D arg_1)
 
 class Composable_types_inner_class_eval f where
         composable_types_class_function_eval ::

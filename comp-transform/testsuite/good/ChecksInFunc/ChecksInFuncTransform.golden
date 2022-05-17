@@ -13,9 +13,8 @@ import qualified ComposableTypes
 
 data B composable_types_recursive_var = B
 
-composable_types_constructor_B ::
-                                 B Data.Comp.:<: g => Data.Comp.Term g
-composable_types_constructor_B = Data.Comp.inject B
+composable_types_constructor_B :: ComposableTypes.PartOf B g => g
+composable_types_constructor_B = ComposableTypes.inject' B
 
 class Composable_types_inner_class_c f where
         composable_types_class_function_c ::
@@ -36,6 +35,6 @@ instance Composable_types_inner_class_c g =>
         c = composable_types_class_function_c . Data.Comp.unTerm
 
 d ::
-    (B Data.Comp.:<: a, Composable_types_inner_class_c a) =>
-    Data.Comp.Term a -> ((), Data.Comp.Term a)
+    (ComposableTypes.PartOf B a, Composable_types_outer_class_c a) =>
+    a -> ((), a)
 d a = (c a, composable_types_constructor_B)

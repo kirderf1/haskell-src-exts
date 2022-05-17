@@ -17,13 +17,11 @@ data Op composable_types_recursive_var = Add composable_types_recursive_var
                                               composable_types_recursive_var
 
 composable_types_constructor_Add ::
-                                   Op Data.Comp.:<: g =>
-                                   Data.Comp.Term g -> Data.Comp.Term g -> Data.Comp.Term g
+                                   ComposableTypes.PartOf Op g => g -> g -> g
 composable_types_constructor_Add arg_1 arg_2
-  = Data.Comp.inject (Add arg_1 arg_2)
+  = ComposableTypes.inject' (Add arg_1 arg_2)
 
 composable_types_constructor_Mult ::
-                                    Op Data.Comp.:<: g =>
-                                    Data.Comp.Term g -> Data.Comp.Term g -> Data.Comp.Term g
+                                    ComposableTypes.PartOf Op g => g -> g -> g
 composable_types_constructor_Mult arg_1 arg_2
-  = Data.Comp.inject (Mult arg_1 arg_2)
+  = ComposableTypes.inject' (Mult arg_1 arg_2)

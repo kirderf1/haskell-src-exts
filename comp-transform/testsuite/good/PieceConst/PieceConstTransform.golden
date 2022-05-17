@@ -14,6 +14,6 @@ import qualified ComposableTypes
 data Value composable_types_recursive_var = Const Int
 
 composable_types_constructor_Const ::
-                                     Value Data.Comp.:<: g => Int -> Data.Comp.Term g
+                                     ComposableTypes.PartOf Value g => Int -> g
 composable_types_constructor_Const arg_1
-  = Data.Comp.inject (Const arg_1)
+  = ComposableTypes.inject' (Const arg_1)

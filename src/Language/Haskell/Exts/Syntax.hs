@@ -128,7 +128,7 @@ import Data.Traversable (Traversable)
 
 -- | The name of a Haskell module.
 data ModuleName l = ModuleName l String
-  deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
+  deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic,Read)
 
 -- | Constructors with special syntax.
 -- These names are never qualified, and always refer to builtin type or
@@ -142,7 +142,7 @@ data SpecialCon l
     | Cons l                -- ^ list data constructor @(:)@
     | UnboxedSingleCon l    -- ^ unboxed singleton tuple constructor @(\# \#)@
     | ExprHole l            -- ^ An expression hole _
-  deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
+  deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic,Read)
 
 -- | This type is used to represent qualified variables, and also
 -- qualified constructors.
@@ -150,13 +150,13 @@ data QName l
     = Qual    l (ModuleName l) (Name l) -- ^ name qualified with a module name
     | UnQual  l                (Name l) -- ^ unqualified local name
     | Special l (SpecialCon l)          -- ^ built-in constructor with special syntax
-  deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
+  deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic,Read)
 
 -- | This type is used to represent variables, and also constructors.
 data Name l
     = Ident  l String   -- ^ /varid/ or /conid/.
     | Symbol l String   -- ^ /varsym/ or /consym/
-  deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
+  deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic,Read)
 
 -- | An implicit parameter name.
 data IPName l
@@ -681,7 +681,7 @@ data Promoted l
 
 -- | Flag denoting whether a tuple is boxed or unboxed.
 data Boxed = Boxed | Unboxed
-  deriving (Eq,Ord,Show,Typeable,Data,Generic)
+  deriving (Eq,Ord,Show,Typeable,Data,Generic,Read)
 
 -- | A type variable declaration, optionally with an explicit kind annotation.
 data TyVarBind l

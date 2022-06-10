@@ -919,7 +919,7 @@ instance ExactP Decl where
              ([end], Nothing) -> printStringAt (pos end) "#-}"
              _ -> errorEP "ExactP: Decl: CompletePragma is given wrong number of srcInfoPoints"
         _ -> errorEP "ExactP: Decl: CompletePragma is given wrong number of srcInfoPoints"
-    PieceDecl _l _ca _dh _constrs _mder -> undefined
+    PieceDecl _l _ca _dh _constrs  -> undefined
     PieceCatDecl _l _ca -> undefined
     CompFunDecl _l _ns _mcx _ca _t -> undefined
     CompFunExt _l _mcx _fn _types _pn _mids -> undefined

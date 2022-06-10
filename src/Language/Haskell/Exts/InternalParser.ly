@@ -699,11 +699,11 @@ lexer through the 'foreign' (and 'export') keyword.
 > (CompletePragma ($1 <^^> $4 <** ([$1] ++ fst $2 ++ com ++ [$4])) (snd $2) ts) }
 
 Requires Composable Types extension
->       | 'data' 'piece' qcon '==>' con constrs0 maybe_derivings
+>       | 'data' 'piece' qcon '==>' con constrs0
 >              {% do { checkEnabled ComposableTypes ;
 >                      let { (qds,ss,minf) = $6;
->                            l = nIS $1 <++> nIS $2 <++> nIS $4 <++> $3 <> $5 <+?> minf <+?> fmap ann (listToMaybe $7) <** ss};
->                      return (PieceDecl l $3 $5 (reverse qds) (reverse $7)) } }
+>                            l = nIS $1 <++> nIS $2 <++> nIS $4 <++> $3 <> $5 <+?> minf <** ss};
+>                      return (PieceDecl l $3 $5 (reverse qds)) } }
 
 >       | 'piececategory' con 
 >                {% do { checkEnabled ComposableTypes ;

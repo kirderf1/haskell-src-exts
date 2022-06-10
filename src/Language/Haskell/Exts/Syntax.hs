@@ -343,7 +343,7 @@ data Decl l
      | CompletePragma l [Name l] (Maybe (QName l))
      -- ^ A COMPLETE pragma
      | PieceCatDecl l (Name l)
-     | PieceDecl    l (QName l) (Name l) [QualConDecl l] [Deriving l]
+     | PieceDecl    l (QName l) (Name l) [QualConDecl l]
      | CompFunDecl  l [Name l] (Maybe (Context l)) (QName l) (Type l)
      | CompFunExt   l (Maybe (Context l)) (Name l) [Type l] (QName l) (Maybe [InstDecl l])
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
@@ -1324,7 +1324,7 @@ instance Annotated Decl where
         PatSyn           l _ _ _        -> l
         CompletePragma l _ _            -> l
         PieceCatDecl   l _              -> l
-        PieceDecl      l _ _ _ _        -> l
+        PieceDecl      l _ _ _          -> l
         CompFunDecl    l _ _ _ _        -> l
         CompFunExt     l _ _ _ _ _      -> l
     amap f decl = case decl of
@@ -1366,7 +1366,7 @@ instance Annotated Decl where
         PatSyn           l p r d         -> PatSyn (f l) p r d
         CompletePragma   l cs ty         -> CompletePragma (f l) cs ty
         PieceCatDecl l ca                -> PieceCatDecl (f l) ca
-        PieceDecl    l ca dh cds ders    -> PieceDecl (f l) ca dh cds ders
+        PieceDecl    l ca dh cds         -> PieceDecl (f l) ca dh cds
         CompFunDecl  l ns mcx ca t       -> CompFunDecl (f l) ns mcx ca t
         CompFunExt   l mcx fn ts pn ins  -> CompFunExt (f l) mcx fn ts pn ins
 

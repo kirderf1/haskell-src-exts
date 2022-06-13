@@ -1,3 +1,7 @@
+This is a fork of haskell-src-exts that has been extended with an experimental language extension. If you are looking for the repository of the original haskell-src-exts package, you can find it [here][suite-hse].
+
+[suite-hse]: https://github.com/haskell-suite/haskell-src-exts
+
 Haskell Source Extensions
 =========================
 
@@ -11,6 +15,10 @@ in compilers and tools.
 Apart from the more standard extensions supported by e.g. GHC,
 haskell-src-exts provides support for HaRP (Haskell Regular Patterns)
 and HSX (Haskell Source with XML) syntax.
+
+This specific fork of haskell-src-exts is a part of [composable-types][cty], and has been extended to represent and parse experimental syntax relating to [composable-types][cty].
+
+[cty]: https://github.com/kirderf1/composable-types
 
 Package structure
 -----------------
@@ -36,13 +44,3 @@ The haskell-src-exts Package is distributed under a derived BSD-style license. I
 derives from several sources, all of which are distributable under
 BSD-style or compatible licenses. See the file LICENSE for the complete
 license text.
-
-
-Maintenance
---------------
-
-Dan Burton is currently keeping haskell-src-exts on life support.
-If you are interested in more actively making improvements to this package,
-please make your interests known.
-
-You might want to try [ghc-lib-parser](http://hackage.haskell.org/package/ghc-lib-parser) instead.

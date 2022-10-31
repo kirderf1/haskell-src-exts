@@ -326,7 +326,7 @@ Utility
 > %partial ngparsePragmasAndModuleHead moduletophead
 > %partial ngparsePragmasAndModuleName moduletopname
 > %tokentype { Loc Token }
-> %expect 13
+> %expect 14
 > %%
 
 -----------------------------------------------------------------------------
@@ -720,12 +720,13 @@ Requires Composable Types extension
 >                        let {(vs,ss,_) = $3 ; l = $1 <> $5 <** ($2 : reverse ss ++ [$4]) } ;
 >                        return $ CompFunDecl l (v : reverse vs) cx qn t } }
 
->       | 'ext' ctype type_app_list 'for' qcon optvaldefs
+>       | 'ext' extfun type_app_list 'for' qcon optvaldefs
 >                {% do { 
 >                   checkEnabled ComposableTypes ;
->                   (cx, fn) <- checkCompFunExt $2 ;
 >                   let { (mis,ss,minf) = $6 ;
+>                         (pcx, fn) = $2 ;
 >                         l = nIS $1 <++> ann $5 <+?> minf <** ss };
+>                   cx <- checkContext pcx ;
 >                   return $ CompFunExt l cx fn $3 $5 mis }}
 
 >       | decl          { $1 }
@@ -2253,6 +2254,12 @@ Context with constraints for composable types
 >                                       return (PieceConstraint l $1 $3) } }
 >       | qcon '==>' tyvar        {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
 >                                       return (CategoryConstraint l $1 $3) } }
+
+
+
+> extfun :: { (Maybe (PContext L), QName L) }
+>       : context_('*',NEVER) qvar     { (Just $1, $2) }
+>       | qvar                         { (Nothing, $1) }
 
 
 -----------------------------------------------------------------------------

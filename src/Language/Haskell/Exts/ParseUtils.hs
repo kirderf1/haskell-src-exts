@@ -29,7 +29,6 @@ module Language.Haskell.Exts.ParseUtils (
     , checkAssertion        -- PType -> P PAsst
     , checkDataHeader       -- PType -> P (Context,Name,[TyVarBind])
     , checkClassHeader      -- PType -> P (Context,Name,[TyVarBind])
-    , checkPieceHeader      -- PType L -> P (Maybe (S.Context L), DeclHead L)
     , checkInstHeader       -- PType -> P (Context,QName,[Type])
     , checkDeriving         -- [PType] -> P [Deriving]
     , checkPattern          -- PExp -> P Pat
@@ -81,6 +80,7 @@ module Language.Haskell.Exts.ParseUtils (
     , p_unboxed_singleton_con   -- PExp
     , pexprToQName
     , checkCompFunDecl
+    , checkPieceRef
     , checkCompFunExt
     ) where
 
@@ -322,16 +322,6 @@ checkClassHeader (TyForall _ Nothing cs t) = do
 checkClassHeader t = do
     checkMultiParam t
     dh <- checkSimple "class" t
-    return (Nothing,dh)
-
--- for Composable types pieces
-checkPieceHeader :: PType L -> P (Maybe (S.Context L), DeclHead L)
-checkPieceHeader (TyForall _ Nothing cs t) = do
-    dh <- checkSimple "piece" t
-    cs' <- checkContext cs
-    return (cs',dh)
-checkPieceHeader t = do
-    dh <- checkSimple "piece" t
     return (Nothing,dh)
 
 checkSimple :: String -> PType L -> P (DeclHead L)
@@ -1332,6 +1322,21 @@ mkSumOrTuple Boxed _s (SSum {}) = fail "Boxed sums are not implemented"
 
 ----------------------------------------------
 -- | Composable types 
+
+checkPieceRef :: PType L -> P (PieceRef L)
+checkPieceRef (TyApp l h t) = do
+    t' <- checkType t
+    h' <- checkPieceRef h
+    return $ IHApp l h' t'
+checkPieceRef (TyCon l c) = do
+    checkAndWarnTypeOperators c
+    return $ IHCon l c
+checkPieceRef (TyInfix l a op b) = do
+    checkAndWarnTypeOperators (getMaybePromotedQName op)
+    [ta,tb] <- checkTypes [a,b]
+    return $ IHApp l (IHInfix l ta (getMaybePromotedQName op)) tb
+checkPieceRef (TyParen l t) = checkPieceRef t >>= return . IHParen l
+checkPieceRef _ = fail "Illegal piece reference"
 
 checkCompFunExt :: PType L -> P (Maybe (S.Context L), Name L)
 checkCompFunExt (TyForall l mtvs mcx t) = do

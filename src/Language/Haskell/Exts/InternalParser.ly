@@ -699,11 +699,12 @@ lexer through the 'foreign' (and 'export') keyword.
 > (CompletePragma ($1 <^^> $4 <** ([$1] ++ fst $2 ++ com ++ [$4])) (snd $2) ts) }
 
 Requires Composable Types extension
->       | 'data' 'piece' qcon '==>' con constrs0
+>       | 'data' 'piece' qcon '==>' ctype constrs0
 >              {% do { checkEnabled ComposableTypes ;
+>                      (cs,dh) <- checkDataHeader $5;
 >                      let { (qds,ss,minf) = $6;
 >                            l = nIS $1 <++> nIS $2 <++> nIS $4 <++> $3 <> $5 <+?> minf <** ss};
->                      return (PieceDecl l $3 $5 (reverse qds)) } }
+>                      return (PieceDecl l $3 cs dh (reverse qds)) } }
 
 >       | 'piececategory' con 
 >                {% do { checkEnabled ComposableTypes ;
@@ -720,7 +721,7 @@ Requires Composable Types extension
 >                        let {(vs,ss,_) = $3 ; l = $1 <> $5 <** ($2 : reverse ss ++ [$4]) } ;
 >                        return $ CompFunDecl l (v : reverse vs) cx qn t } }
 
->       | 'ext' extfun type_app_list 'for' qcon optvaldefs
+>       | 'ext' extfun type_app_list 'for' pieceref optvaldefs
 >                {% do { 
 >                   checkEnabled ComposableTypes ;
 >                   let { (mis,ss,minf) = $6 ;
@@ -1015,6 +1016,7 @@ Implicit parameters can occur in normal types, as well as in contexts.
 
 > type_(ostar,kstar) :: { PType L }
 >       : ivar '::' dtype_(ostar,kstar) { let l = ($1 <> $3 <** [$2]) in TyPred l $ IParam l $1 $3 }
+>       | qcon '==>' '(' comp_list_(ostar,kstar) ')'  { let (_, names) = $4 in TyComp (ann $1 <++> nIS $5) $1 names }
 >       | dtype_(ostar,kstar)           { $1 }
 
 > truebtype :: { Type L }
@@ -1027,8 +1029,7 @@ Implicit parameters can occur in normal types, as well as in contexts.
 
 > btype_(ostar,kstar) :: { PType L }
 >       : btype_(ostar,kstar) atype_(ostar,kstar) { TyApp ($1 <> $2) $1 $2 }
->       | qcon '==>' '(' comp_list ')'  { let (_, names) = $4 in TyComp (ann $1 <++> nIS $5) $1 names }
->       | constraint                    { TyCompCont (ann $1) $1 }
+>       | constraint_(ostar,kstar)      { TyCompCont (ann $1) $1 }
 >       | atype_(ostar,kstar)           { $1 }
 
 UnboxedTuples requires the extension, but that will be handled through
@@ -1177,6 +1178,17 @@ Equality constraints require the TypeFamilies extension.
 > type_app_list :: { [Type L] }
 >       : '@' truectype type_app_list   { ($2 : $3) }
 >       |                               { [] }
+
+> comp_list_(ostar,kstar) :: { ([S], [PieceRef L]) }
+>        : pieceref_(ostar,kstar)                              { ([], [$1]) }
+>        | pieceref_(ostar,kstar) '|' comp_list_(ostar,kstar)  { let (ss, cs) = $3
+>                                 in ($2 : ss, $1 :cs) }
+
+> pieceref :: { PieceRef L }
+>       : pieceref_('*',NEVER)     { $1 }
+
+> pieceref_(ostar,kstar) :: { PieceRef L }
+>       : btype_(ostar,kstar)   {% checkPieceRef $1 }
 
 -----------------------------------------------------------------------------
 Functional Dependencies
@@ -1994,11 +2006,6 @@ Implicit parameter
 >       : qconid                { $1 }
 >       | '(' gconsym ')'       { updateQNameLoc ($1 <^^> $3 <** [$1, srcInfoSpan (ann $2), $3]) $2 }
 
-> comp_list :: { ([S], [QName L]) }
->        : qcon                 { ([], [$1]) }
->        | qcon '|' comp_list   { let (ss, cs) = $3
->                                 in ($2 : ss, $1 :cs) }
-
 > varop :: { Name L }
 >       : varsym                { $1 }
 >       | '`' varid '`'         { fmap (const ($1 <^^> $3 <** [$1, srcInfoSpan (ann $2), $3])) $2 }
@@ -2246,10 +2253,10 @@ Deriving strategies
 -----------------------------------------------------------------------------
 Context with constraints for composable types
 
-> constraint :: { Constraint L }
+> constraint_(ostar,kstar) :: { Constraint L }
 >       : tyvar 'with' qvar     {% do { let { l = ann $1 <++> nIS $2 <++> ann $3 } ;
 >                                       return (FunConstraint l $3 $1) } }
->       | qcon 'partof' tyvar         {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
+>       | pieceref_(ostar,kstar) 'partof' tyvar  {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
 >                                       return (PieceConstraint l $1 $3) } }
 >       | qcon '==>' tyvar        {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
 >                                       return (CategoryConstraint l $1 $3) } }

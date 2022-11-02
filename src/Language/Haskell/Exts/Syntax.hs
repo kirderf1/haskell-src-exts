@@ -66,7 +66,7 @@ module Language.Haskell.Exts.Syntax (
     Context(..), FunDep(..), Asst(..),
     -- * Types
     Type(..), Boxed(..), Kind, TyVarBind(..), Promoted(..),
-    Constraint(..),
+    Constraint(..), PieceRef,
     TypeEqn (..),
     -- * Expressions
     Exp(..), Stmt(..), QualStmt(..), FieldUpdate(..),
@@ -343,9 +343,10 @@ data Decl l
      | CompletePragma l [Name l] (Maybe (QName l))
      -- ^ A COMPLETE pragma
      | PieceCatDecl l (Name l)
-     | PieceDecl    l (QName l) (Name l) [QualConDecl l]
+     | PieceDecl    l (QName l) (Maybe (Context l)) (DeclHead l) [QualConDecl l]
      | CompFunDecl  l [Name l] (Maybe (Context l)) (QName l) (Type l)
-     | CompFunExt   l (Maybe (Context l)) (QName l) [Type l] (QName l) (Maybe [InstDecl l])
+     | CompFunExt   l (Maybe (Context l)) (QName l) [Type l] (PieceRef l) (Maybe [InstDecl l])
+     -- ^ Function extension with optional context, function name, type applications, piece name, and any function bindings in that order
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
 data  PatternSynDirection l =
@@ -655,15 +656,17 @@ data Type l
      | TyBang l (BangType l) (Unpackedness l) (Type l)           -- ^ Strict type marked with \"@!@\" or type marked with UNPACK pragma.
      | TyWildCard l (Maybe (Name l))            -- ^ Either an anonymous of named type wildcard
      | TyQuasiQuote l String String             -- ^ @[$/name/| /string/ |]@
-     | TyComp l (QName l) [QName l]             -- ^ Type  composition, e.g. C ==> (A, B)
+     | TyComp l (QName l) [PieceRef l]          -- ^ Type  composition, e.g. C ==> (A, B)
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
   
 data Constraint l
     = FunConstraint l (QName l) (Name l)        -- ^ Function constraint, e.g. f for a
-    | PieceConstraint l (QName l) (Name l)      -- ^ Piece constraint, e.g. A in a
+    | PieceConstraint l (PieceRef l) (Name l)      -- ^ Piece constraint, e.g. A in a
     | CategoryConstraint l (QName l) (Name l)   -- ^ Category constraint, e.g. A ==> a
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
+
+type PieceRef l = InstHead l
   
 data MaybePromotedName l = PromotedName l (QName l) | UnpromotedName l (QName l)
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
@@ -1324,7 +1327,7 @@ instance Annotated Decl where
         PatSyn           l _ _ _        -> l
         CompletePragma l _ _            -> l
         PieceCatDecl   l _              -> l
-        PieceDecl      l _ _ _          -> l
+        PieceDecl      l _ _ _ _        -> l
         CompFunDecl    l _ _ _ _        -> l
         CompFunExt     l _ _ _ _ _      -> l
     amap f decl = case decl of
@@ -1366,7 +1369,7 @@ instance Annotated Decl where
         PatSyn           l p r d         -> PatSyn (f l) p r d
         CompletePragma   l cs ty         -> CompletePragma (f l) cs ty
         PieceCatDecl l ca                -> PieceCatDecl (f l) ca
-        PieceDecl    l ca dh cds         -> PieceDecl (f l) ca dh cds
+        PieceDecl    l ca cs dh cds      -> PieceDecl (f l) ca cs dh cds
         CompFunDecl  l ns mcx ca t       -> CompFunDecl (f l) ns mcx ca t
         CompFunExt   l mcx fn ts pn ins  -> CompFunExt (f l) mcx fn ts pn ins
 

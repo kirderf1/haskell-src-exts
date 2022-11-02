@@ -1027,6 +1027,8 @@ Implicit parameters can occur in normal types, as well as in contexts.
 
 > btype_(ostar,kstar) :: { PType L }
 >       : btype_(ostar,kstar) atype_(ostar,kstar) { TyApp ($1 <> $2) $1 $2 }
+>       | qcon '==>' '(' comp_list ')'  { let (_, names) = $4 in TyComp (ann $1 <++> nIS $5) $1 names }
+>       | constraint                    { TyCompCont (ann $1) $1 }
 >       | atype_(ostar,kstar)           { $1 }
 
 UnboxedTuples requires the extension, but that will be handled through
@@ -1054,9 +1056,6 @@ the (# and #) lexemes. Kinds will be handled at the kind rule.
 >       | TIDSPLICE                     { let Loc l (THTIdEscape s) = $1 in TySplice (nIS l) $ TIdSplice (nIS l) s }
 >       | '_'                           { TyWildCard (nIS $1) Nothing }
 >       | QUASIQUOTE                    { let Loc l (THQuasiQuote (n,q)) = $1 in TyQuasiQuote (nIS l) n q }
->       | qcon '==>' '(' comp_list ')'  { let (_, names) = $4 in TyComp (ann $1 <++> nIS $5) $1 names }
->       | qcon '==>' qcon               { TyComp (ann $1 <++> ann $3) $1 [$3] }
->       | constraint                    { TyCompCont (ann $1) $1 }
 >       | ptype_(ostar,kstar)           { % checkEnabled DataKinds >> return (TyPromoted (ann $1) $1) }
 
 > ptype_(ostar,kstar) :: { Promoted L }

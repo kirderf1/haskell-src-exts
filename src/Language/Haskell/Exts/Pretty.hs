@@ -943,7 +943,7 @@ ppForall (Just vs) = myFsep (text "forall" : map pretty vs ++ [char '.'])
 --------------Constraints for composable types-----------------
 
 instance Pretty (Constraint l) where
-    pretty (FunConstraint _ qn n) = myFsep [pretty n, text "with", pretty qn]
+    pretty (FunConstraint _ qn ts n) = myFsep ([pretty n, text "with", pretty qn] ++ map ((char '@' <>) . pretty) ts)
     pretty (PieceConstraint _ qn n) = myFsep [pretty qn, text "partof", pretty n]
     pretty (CategoryConstraint _ qn n) = myFsep [pretty qn, text "==>", pretty n]
 

@@ -660,9 +660,9 @@ data Type l
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
   
 data Constraint l
-    = FunConstraint l (QName l) (Name l)        -- ^ Function constraint, e.g. f for a
+    = FunConstraint l (QName l) [Type l] (Name l)  -- ^ Function constraint, e.g. f for a
     | PieceConstraint l (PieceRef l) (Name l)      -- ^ Piece constraint, e.g. A in a
-    | CategoryConstraint l (QName l) (Name l)   -- ^ Category constraint, e.g. A ==> a
+    | CategoryConstraint l (QName l) (Name l)      -- ^ Category constraint, e.g. A ==> a
   deriving (Eq,Ord,Show,Typeable,Data,Foldable,Traversable,Functor,Generic)
 
 
@@ -1570,11 +1570,11 @@ instance Annotated Type where
       
 instance Annotated Constraint where
     ann c = case c of
-      FunConstraint l _ _           -> l
+      FunConstraint l _ _ _         -> l
       PieceConstraint l _ _         -> l
       CategoryConstraint l _ _      -> l
     amap f c = case c of
-      FunConstraint l qn t          -> FunConstraint (f l) qn t
+      FunConstraint l qn ts t       -> FunConstraint (f l) qn ts t
       PieceConstraint l qn t        -> PieceConstraint (f l) qn t
       CategoryConstraint l qn t     -> CategoryConstraint (f l) qn t
 

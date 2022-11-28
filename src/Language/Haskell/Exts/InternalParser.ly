@@ -1176,7 +1176,7 @@ Equality constraints require the TypeFamilies extension.
 >       : tyvars tyvar                  { ($2 : fst $1, snd $1 <?+> ann $2) }
 
 > type_app_list :: { [Type L] }
->       : '@' truectype type_app_list   { ($2 : $3) }
+>       : '@' trueatype type_app_list   { ($2 : $3) }
 >       |                               { [] }
 
 > comp_list_(ostar,kstar) :: { ([S], [PieceRef L]) }
@@ -2254,8 +2254,8 @@ Deriving strategies
 Context with constraints for composable types
 
 > constraint_(ostar,kstar) :: { Constraint L }
->       : tyvar 'with' qvar     {% do { let { l = ann $1 <++> nIS $2 <++> ann $3 } ;
->                                       return (FunConstraint l $3 $1) } }
+>       : tyvar 'with' qvar type_app_list   {% do { let { l = ann $1 <++> nIS $2 <++> ann $3 } ;
+>                                       return (FunConstraint l $3 $4 $1) } }
 >       | pieceref_(ostar,kstar) 'partof' tyvar  {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
 >                                       return (PieceConstraint l $1 $3) } }
 >       | qcon '==>' tyvar        {% do { let { l = ann $1 <++> nIS $2 <++> ann $3  } ;
